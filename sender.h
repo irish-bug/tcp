@@ -49,7 +49,6 @@ private:
 	int DUPACK_counter;
 	deque<Packet> window;
 public:
-	CongestionWindow(int timeout);
 	void setLowestSeqNum(unsigned long long int new_num);
 	unsigned long long int getLowestSeqNum();
 	void setLastACK(unsigned long long int ACK_num);
