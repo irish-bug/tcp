@@ -103,7 +103,6 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 			//timed out. reset CW to 1
 			cw.panicMode();
 		}
-
 	}
 }
 
