@@ -34,10 +34,10 @@ private:
 	char data[MAX_DATA_SIZE];
 	unsigned long long int sequence_num;
 public:
-	Packet(int num, char * buf);
 	void setSequenceNum(unsigned long long int num);
 	unsigned long long int getSequenceNum();
 	int setPacketData(char * buf);
+	void getPacketData(char * buf);
 };
 
 class CongestionWindow {
@@ -60,10 +60,11 @@ public:
 	void setDUPACKcounter(int val);
 	int getDUPACKcounter();
 	void incrementDUPACKcounter();
+	int getNumPktsToAdd();
 	// add growth schemes here
 
 	void addPacket(char * buf);
-	int removePackets(int n); // pop n packets off the queue
+	void removePackets(int n); // pop n packets off the queue
 	void sendWindow(Socket * sock); // send all the packets in CW
 	void cutWindow(); // reduce window size on three DUPACKS
 	void panicMode(); // set CW back to 1 on timeout
