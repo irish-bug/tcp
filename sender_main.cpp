@@ -10,7 +10,10 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <ctime>
+#include <string>
+#include <cstring>
 #include "sender.h"
+using namespace std;
 
 #define ACK "ACK"
 #define SYN "SYN"
@@ -97,8 +100,7 @@ Socket * setup_UDP(char * hostname, unsigned short int port) {
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_DGRAM;
 
-    string port_str = to_string
-    (port);
+    string port_str = to_string(port);
     if ((rv = getaddrinfo(hostname, port_str.c_str(), &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return NULL;
@@ -120,9 +122,9 @@ Socket * setup_UDP(char * hostname, unsigned short int port) {
         return NULL;
     }
 
-    Socket * sock;
-    sock->setSockFD(sockfd);
-    sock->setAddrInfo(p);
+    Socket sock;
+    sock.setSockFD(sockfd);
+    sock.setAddrInfo(p);
 
     /*if ((numbytes = sendto(sockfd, argv[2], strlen(argv[2]), 0,
              p->ai_addr, p->ai_addrlen)) == -1) {
@@ -135,7 +137,7 @@ Socket * setup_UDP(char * hostname, unsigned short int port) {
     printf("talker: sent %d bytes to %s\n", numbytes, argv[1]);
     close(sockfd);*/
 
-    return sock;
+    return &sock;
 }
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
@@ -179,9 +181,11 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 
 		char buf[MAX_DATA_SIZE];
 		for(int i=0; i<num_pkts; i++) {
-			if((bytes = myFile.read(buf, MAX_DATA_SIZE)) != -1) { // read 1KB into buf
+			/*if((bytes = myFile.read(buf, MAX_DATA_SIZE)) != -1) { // read 1KB into buf
 				bytesRead += bytes;
-			}
+			}*/
+            myFile.read(buf, MAX_DATA_SIZE);
+            bytesRead += myFile.gcount();
 			cw.addPacket(buf);
 		}
 
