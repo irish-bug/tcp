@@ -25,15 +25,12 @@ struct addrinfo * Socket::getAddrInfo() {
 
 /* PACKET METHODS */
 
-Packet::Packet(int num, char * buf) {
-	sequence_num = num;
-	if (buf != NULL) {
-		strcpy(data,buf);
-	}
-}
-
 void Packet::setSequenceNum(unsigned long long int num) {
 	sequence_num = num;
+}
+
+unsigned long long int Packet::getSequenceNum() {
+	return sequence_num;
 }
 
 int Packet::setPacketData(char * buf) {
@@ -45,8 +42,8 @@ int Packet::setPacketData(char * buf) {
 	return 0;
 }
 
-unsigned long long int Packet::getSequenceNum() {
-	return sequence_num;
+void Packet::getPacketData(char * buf) {
+	strcpy(buf,data);
 }
 
 /* CONGESTION WINDOW METHODS */
@@ -100,8 +97,11 @@ void CongestionWindow::incrementDUPACKcounter() {
 
 void CongestionWindow::sendWindow(Socket * sock) {
 	for (int i=0; i < window_size; i++) {
-		if ((numbytes = sendto(sock->sockfd, window[i], strlen(window[i]), 0,
-	             sock->p->ai_addr, sock->p->ai_addrlen)) == -1) {
+		int numbytes;
+		char buf[MAX_DATA_SIZE];
+		window[i].getPacketData(buf);
+		if ((numbytes = sendto(sock->getSockFD(), buf, strlen(buf), 0,
+	             sock->getAddrInfo()->ai_addr, sock->getAddrInfo()->ai_addrlen)) == -1) {
 	        perror("sender: sendto");
 	        exit(1);
 	    }
@@ -119,12 +119,13 @@ void CongestionWindow::removePackets(int n) {
 	for(int i=0; i < n; i++) {
 		window.pop_front();
 	}
-	lowest_seq_num = window.front().sequence_num;
+	lowest_seq_num = window.front().getSequenceNum();
 }
 
 int CongestionWindow::getNumPktsToAdd() {
 	return window_size - window.size(); // number of packets that need to be added
 }
+
 void CongestionWindow::panicMode() {
 	window_size = 1;
 }
