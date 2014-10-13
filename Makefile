@@ -7,7 +7,7 @@ CC = g++
 INC = -I.
 FLAGS = -g -Wall
 
-all: sender sender_main receiver
+all: sender_main receiver
 
 sender.o: sender.cpp sender.h
 	$(CC) -c $(FLAGS) $(INC) $< -o $@
