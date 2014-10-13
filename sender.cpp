@@ -48,12 +48,12 @@ void Packet::getPacketData(char * buf) {
 
 /* CONGESTION WINDOW METHODS */
 
-CongestionWindow::CongestionWindow(int timeout) {
+/*CongestionWindow::CongestionWindow(int timeout) {
 	lowest_seq_num = 1;
 	last_ACK = 0;
 	RTO = timeout;
 	window_size = 1;
-}
+}*/
 
 void CongestionWindow::setLowestSeqNum(unsigned long long int new_num) {
 	lowest_seq_num = new_num;
