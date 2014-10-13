@@ -15,6 +15,9 @@ int Socket::setAddrInfo(struct addrinfo *info) {
 		cout << "Adress info struct is NULL.\n";
 		return -1;
 	}
+    if (p== NULL) {
+        cout << "Yo socket is null!!\n";
+    }
 	*p = *info;
 	return 0;
 }
