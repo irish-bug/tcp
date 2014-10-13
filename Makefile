@@ -24,7 +24,7 @@ sender: sender.o
 receiver: receiver.o
 	$(CC) $^ -o $@
 
-sender_main: sender_main.o sender.o
+sender_main: sender_main.o
 	$(CC) $^ -o $@
 
 .PHONY : clean
