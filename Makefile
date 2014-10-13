@@ -3,40 +3,24 @@
 # CS 438
 #
 
-CC = gcc
+CC = g++
 INC = -I.
 FLAGS = -g 
 
-all: beej abctalk abc
+all: sender sender_main
 
-beej: beejtalk beejlisten
-
-abc: abctalk abclisten
-
-beejtalk: talker.o
+sender: sender.o
 	$(CC) $^ -o $@
 
-beejlisten: listener.o
-	$(CC) $^ -o $@	
-
-abctalk: server.o client.o
+sender_main: sender_main.o
 	$(CC) $^ -o $@
 
-abclisten: client.o
-	$(CC) $^ -o $@	
-
-client.o: udp_client.c
+sender.o: sender.cpp sender.h
 	$(CC) -c $(FLAGS) $(INC) $< -o $@
 
-server.o: udp_server.c
-	$(CC) -c $(FLAGS) $(INC) $< -o $@
-
-listener.o: listener.c
-	$(CC) -c $(FLAGS) $(INC) $< -o $@
-
-talker.o: talker.c
+sender_main.o: sender_main.cpp
 	$(CC) -c $(FLAGS) $(INC) $< -o $@
 
 .PHONY : clean
 clean:
-	-rm -r -f *.o beejlisten beejtalk abclisten abctalk
+	-rm -r -f *.o sender sender_main
