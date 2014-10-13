@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <unistd.h>
 #include <ctime>
 #include "sender.h"
 
@@ -31,6 +32,107 @@ int main(int argc, char** argv)
 	numBytes = atoll(argv[4]);
 	
 	reliablyTransfer(argv[1], udpPort, argv[3], numBytes);
+	return 0;
+}
+
+unsigned long long int getACKnum(char * msg) {
+	// strip the ACK number from message
+	string ACKmsg(msg);
+	return 0;
+}
+
+int initialize_TCP(Socket * sock) {
+	char buf[MAX_DATA_SIZE]; //store 
+
+	clock_t start, stop;
+	if(sock == NULL) {
+		cout << "initialize_TCP: Socket object is NULL.\n";
+		return -1;
+	}
+
+	start = clock();
+	int numbytes;
+	if ((numbytes = sendto(sock->getSockFD(), SYN, strlen(SYN), 0,
+             sock->getAddrInfo()->ai_addr, (socklen_t)sock->getAddrInfo()->ai_addrlen)) == -1) {
+        perror("sender: sendto");
+        exit(1);
+    }
+    
+    if ((numbytes = recvfrom(sock->getSockFD(), buf, MAX_DATA_SIZE, 0,
+        	sock->getAddrInfo()->ai_addr, (socklen_t *)sock->getAddrInfo()->ai_addrlen)) == -1) {
+        perror("recvfrom");
+        exit(1);
+    }
+    stop = clock();
+
+    string received (buf);
+
+    if (received.compare("ACK") != 0) {
+    	cout << "Received: " << received << ".\n";
+    	return -1;
+    }
+    else {
+    	cout << "ACK received!\n";
+    }
+
+    if ((numbytes = sendto(sock->getSockFD(), ACK, strlen(ACK), 0,
+             sock->getAddrInfo()->ai_addr, (socklen_t)sock->getAddrInfo()->ai_addrlen)) == -1) {
+        perror("sender: sendto");
+        exit(1);
+    }
+
+	return (stop - start / (double) CLOCKS_PER_SEC); // return estimated timeout
+}
+
+Socket * setup_UDP(char * hostname, unsigned short int port) {
+	int sockfd;
+    struct addrinfo hints, *servinfo, *p;
+    int rv;
+    int numbytes;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_DGRAM;
+
+    string port_str = to_string
+    (port);
+    if ((rv = getaddrinfo(hostname, port_str.c_str(), &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return NULL;
+    }
+
+    // loop through all the results and make a socket
+    for(p = servinfo; p != NULL; p = p->ai_next) {
+        if ((sockfd = socket(p->ai_family, p->ai_socktype,
+                p->ai_protocol)) == -1) {
+            perror("talker: socket");
+            continue;
+        }
+
+        break;
+    }
+
+    if (p == NULL) {
+        fprintf(stderr, "talker: failed to bind socket\n");
+        return NULL;
+    }
+
+    Socket * sock;
+    sock->setSockFD(sockfd);
+    sock->setAddrInfo(p);
+
+    /*if ((numbytes = sendto(sockfd, argv[2], strlen(argv[2]), 0,
+             p->ai_addr, p->ai_addrlen)) == -1) {
+        perror("talker: sendto");
+        exit(1);
+    }
+
+    freeaddrinfo(servinfo);
+
+    printf("talker: sent %d bytes to %s\n", numbytes, argv[1]);
+    close(sockfd);*/
+
+    return sock;
 }
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
@@ -38,19 +140,19 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	// check for legit file
 	ifstream myFile(filename);
 	if(!myFile.is_open()) {
-		cout << "reliablyTransfer: Unable to open file.\n"
+		cout << "reliablyTransfer: Unable to open file.\n";
 		return;
 	}
 	// set up UDP connection
 	Socket * sock;
 	if((sock = setup_UDP(hostname,hostUDPport)) == NULL) {
-		cout << "reliablyTransfer: Socket object is NULL.\n"
+		cout << "reliablyTransfer: Socket object is NULL.\n";
 	}
 
 	// initialize TCP connection
 	int timeout;
 	if((timeout = initialize_TCP(sock)) == -1) {
-		cout << "reliablyTransfer: Could not complete TCP handshake.\n"
+		cout << "reliablyTransfer: Could not complete TCP handshake.\n";
 		return;
 	}
 	
@@ -62,7 +164,7 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	cw.setDUPACKcounter(0);
 
 	// THIS LOOP DOES SLOW START WITH MSS = 1
-	bool slowStart = TRUE;
+	bool slowStart = true;
 	while ((bytesRead < bytesToTransfer) && slowStart) {
 		
 		// read file into packets and place in cw vector
@@ -97,12 +199,12 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 			else {
 				cw.setLastACK(ACK_num);
 				int diff = ACK_num - cw.getLowestSeqNum();
-				removePackets(diff); // pop off ACKd packets
+				cw.removePackets(diff); // pop off ACKd packets
 				// increase congestion window
 				int ws = cw.getWindowSize() + 1;
 				cw.setWindowSize(ws);
 				if(ws >= THRESHOLD) {
-					slowStart = FALSE; // break out of slow start
+					slowStart = false; // break out of slow start
 				}
 			}
 		}
@@ -111,101 +213,4 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 			cw.panicMode();
 		}
 	}
-}
-
-unsigned long long int getACKnum(char * msg) {
-	// strip the ACK number from message
-	string ACKmsg(msg);
-
-}
-
-int initialize_TCP(Socket * sock) {
-	char buf[MAXBUFLEN]; //store 
-
-	clock_t start, stop;
-	if(sock == NULL) {
-		cout << "initialize_TCP: Socket object is NULL.\n"
-		return -1;
-	}
-
-	start = clock();
-	if ((numbytes = sendto(sock->sockfd, SYN, strlen(SYN), 0,
-             sock->p->ai_addr, sock->p->ai_addrlen)) == -1) {
-        perror("sender: sendto");
-        exit(1);
-    }
-    
-    if ((numbytes = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
-        	sock->p->ai_addr, sock->p->ai_addrlen)) == -1) {
-        perror("recvfrom");
-        exit(1);
-    }
-    stop = clock();
-
-    string received (buf);
-
-    if (received.compare("ACK") != 0) {
-    	cout << "Received: " << received << ".\n";
-    	return -1;
-    }
-    else {
-    	cout << "ACK received!\n"
-    }
-
-    if ((numbytes = sendto(sock->sockfd, ACK, strlen(ACK), 0,
-             sock->p->ai_addr, sock->p->ai_addrlen)) == -1) {
-        perror("sender: sendto");
-        exit(1);
-    }
-
-	return (stop - start / (double) CLOCKS_PER_SEC); // return estimated timeout
-}
-
-Socket * setup_UDP(char * hostname, unsigned short int port) {
-	int sockfd;
-    struct addrinfo hints, *servinfo, *p;
-    int rv;
-    int numbytes;
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_DGRAM;
-
-    if ((rv = getaddrinfo(hostname, port, &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return 1;
-    }
-
-    // loop through all the results and make a socket
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
-            perror("talker: socket");
-            continue;
-        }
-
-        break;
-    }
-
-    if (p == NULL) {
-        fprintf(stderr, "talker: failed to bind socket\n");
-        return 2;
-    }
-
-    Socket * sock;
-    sock->setSockFD(sockfd);
-    sock->setAddrInfo(p);
-
-    /*if ((numbytes = sendto(sockfd, argv[2], strlen(argv[2]), 0,
-             p->ai_addr, p->ai_addrlen)) == -1) {
-        perror("talker: sendto");
-        exit(1);
-    }
-
-    freeaddrinfo(servinfo);
-
-    printf("talker: sent %d bytes to %s\n", numbytes, argv[1]);
-    close(sockfd);*/
-
-    return sock;
 }
