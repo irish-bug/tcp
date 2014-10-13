@@ -5,7 +5,7 @@
 
 CC = g++
 INC = -I.
-FLAGS = -g -Wall
+FLAGS = -std=c++0x -g -Wall
 
 all: sender_main receiver
 
