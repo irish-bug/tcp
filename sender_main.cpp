@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include <ctime>
 #include "sender.h"
 
@@ -44,13 +45,14 @@ unsigned long long int getACKnum(char * msg) {
 int initialize_TCP(Socket * sock) {
 	char buf[MAX_DATA_SIZE]; //store 
 
-	clock_t start, stop;
+	struct timeval tim;
 	if(sock == NULL) {
 		cout << "initialize_TCP: Socket object is NULL.\n";
 		return -1;
 	}
 
-	start = clock();
+	gettimeofday(&tim, NULL);
+	double start = tim.tv_sec+(tim.tv_usec/1000000.0);
 	int numbytes;
 	if ((numbytes = sendto(sock->getSockFD(), SYN, strlen(SYN), 0,
              sock->getAddrInfo()->ai_addr, (socklen_t)sock->getAddrInfo()->ai_addrlen)) == -1) {
@@ -63,7 +65,8 @@ int initialize_TCP(Socket * sock) {
         perror("recvfrom");
         exit(1);
     }
-    stop = clock();
+    gettimeofday(&tim, NULL);
+    double stop = tim.tv_sec+(tim.tv_usec/1000000.0);
 
     string received (buf);
 
@@ -81,7 +84,7 @@ int initialize_TCP(Socket * sock) {
         exit(1);
     }
 
-	return (stop - start / (double) CLOCKS_PER_SEC); // return estimated timeout
+	return (stop - start); // return estimated timeout
 }
 
 Socket * setup_UDP(char * hostname, unsigned short int port) {
