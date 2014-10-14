@@ -20,6 +20,9 @@ using namespace std;
 #define ACK_SIZE 128
 #define THRESHOLD 64 // TCP uses a threshold of 64KB
 
+int sockfd;
+struct addrinfo * p;
+
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer);
 
 int main(int argc, char** argv)
@@ -45,26 +48,23 @@ unsigned long long int getACKnum(char * msg) {
 	return 0;
 }
 
-int initialize_TCP(Socket * sock) {
+int initialize_TCP() {
 	char buf[MAX_DATA_SIZE]; //store 
 
 	struct timeval tim;
-	if(sock == NULL) {
-		cout << "initialize_TCP: Socket object is NULL.\n";
-		return -1;
-	}
 
 	gettimeofday(&tim, NULL);
 	double start = tim.tv_sec+(tim.tv_usec/1000000.0);
 	int numbytes;
-	if ((numbytes = sendto(sock->getSockFD(), SYN, strlen(SYN), 0,
-             sock->getAddrInfo()->ai_addr, (socklen_t)sock->getAddrInfo()->ai_addrlen)) == -1) {
+	if ((numbytes = sendto(sockfd, SYN, strlen(SYN), 0,
+             p->ai_addr, 
+             p->ai_addrlen)) == -1) {
         perror("sender: sendto");
         exit(1);
     }
     
-    if ((numbytes = recvfrom(sock->getSockFD(), buf, MAX_DATA_SIZE, 0,
-        	sock->getAddrInfo()->ai_addr, (socklen_t *)sock->getAddrInfo()->ai_addrlen)) == -1) {
+    if ((numbytes = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
+        	p->ai_addr, (socklen_t *)p->ai_addrlen)) == -1) {
         perror("recvfrom");
         exit(1);
     }
@@ -81,8 +81,8 @@ int initialize_TCP(Socket * sock) {
     	cout << "ACK received!\n";
     }
 
-    if ((numbytes = sendto(sock->getSockFD(), ACK, strlen(ACK), 0,
-             sock->getAddrInfo()->ai_addr, (socklen_t)sock->getAddrInfo()->ai_addrlen)) == -1) {
+    if ((numbytes = sendto(sockfd, ACK, strlen(ACK), 0,
+             p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sender: sendto");
         exit(1);
     }
@@ -90,9 +90,9 @@ int initialize_TCP(Socket * sock) {
 	return (stop - start); // return estimated timeout
 }
 
-Socket * setup_UDP(char * hostname, unsigned short int port) {
-	int sockfd;
-    struct addrinfo hints, *servinfo, *p;
+void setup_UDP(char * hostname, unsigned short int port) {
+	//int sockfd;
+    struct addrinfo hints, *servinfo;//, *p;
     int rv;
     int numbytes;
 
@@ -103,7 +103,7 @@ Socket * setup_UDP(char * hostname, unsigned short int port) {
     string port_str = to_string(port);
     if ((rv = getaddrinfo(hostname, port_str.c_str(), &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        return NULL;
+        return;
     }
 
     // loop through all the results and make a socket
@@ -119,12 +119,8 @@ Socket * setup_UDP(char * hostname, unsigned short int port) {
 
     if (p == NULL) {
         fprintf(stderr, "talker: failed to bind socket\n");
-        return NULL;
+        return;
     }
-
-    Socket sock;
-    sock.setSockFD(sockfd);
-    sock.setAddrInfo(p);
 
     /*if ((numbytes = sendto(sockfd, argv[2], strlen(argv[2]), 0,
              p->ai_addr, p->ai_addrlen)) == -1) {
@@ -136,8 +132,6 @@ Socket * setup_UDP(char * hostname, unsigned short int port) {
 
     printf("talker: sent %d bytes to %s\n", numbytes, argv[1]);
     close(sockfd);*/
-
-    return &sock;
 }
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
@@ -149,14 +143,11 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 		return;
 	}
 	// set up UDP connection
-	Socket * sock;
-	if((sock = setup_UDP(hostname,hostUDPport)) == NULL) {
-		cout << "reliablyTransfer: Socket object is NULL.\n";
-	}
+	setup_UDP(hostname, hostUDPport);
 
 	// initialize TCP connection
 	int timeout;
-	if((timeout = initialize_TCP(sock)) == -1) {
+	if((timeout = initialize_TCP()) == -1) {
 		cout << "reliablyTransfer: Could not complete TCP handshake.\n";
 		return;
 	}
@@ -190,7 +181,7 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 		}
 
 		// send the congestion window
-		cw.sendWindow(sock);
+		cw.sendWindow(sockfd, p);
 
 		// wait for an ACK until timeout
 		char resp[ACK_SIZE];
