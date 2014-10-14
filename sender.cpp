@@ -98,13 +98,13 @@ void CongestionWindow::incrementDUPACKcounter() {
 	DUPACK_counter += 1;
 }
 
-void CongestionWindow::sendWindow(Socket * sock) {
+void CongestionWindow::sendWindow(int sockfd, struct addrinfo * p) {
 	for (int i=0; i < window_size; i++) {
 		int numbytes;
 		char buf[MAX_DATA_SIZE];
 		window[i].getPacketData(buf);
-		if ((numbytes = sendto(sock->getSockFD(), buf, strlen(buf), 0,
-	             sock->getAddrInfo()->ai_addr, sock->getAddrInfo()->ai_addrlen)) == -1) {
+		if ((numbytes = sendto(sockfd, buf, strlen(buf), 0,
+	             p->ai_addr, p->ai_addrlen)) == -1) {
 	        perror("sender: sendto");
 	        exit(1);
 	    }
