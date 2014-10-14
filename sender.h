@@ -64,7 +64,7 @@ public:
 
 	void addPacket(char * buf);
 	void removePackets(int n); // pop n packets off the queue
-	void sendWindow(Socket * sock); // send all the packets in CW
+	void sendWindow(int sockfd, struct addrinfo * p); // send all the packets in CW
 	void cutWindow(); // reduce window size on three DUPACKS
 	void panicMode(); // set CW back to 1 on timeout
 };
