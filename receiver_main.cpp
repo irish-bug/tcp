@@ -96,28 +96,14 @@ int setup_UDP(unsigned short int port) {
     printf("listener: waiting to recvfrom...\n");
 
     addr_len = sizeof their_addr;
-    /*if ((numbytes = recvfrom(sockfd, buf, MAXBUFLEN-1 , 0,
-        (struct sockaddr *)&their_addr, &addr_len)) == -1) {
-        perror("recvfrom");
-        exit(1);
-    }
-
-    printf("listener: got packet from %s\n",
-        inet_ntop(their_addr.ss_family,
-            get_in_addr((struct sockaddr *)&their_addr),
-            s, sizeof s));
-    printf("listener: packet is %d bytes long\n", numbytes);
-    buf[numbytes] = '\0';
-    printf("listener: packet contains \"%s\"\n", buf);
-
-    close(sockfd);*/
 
     return 0;
 }
 
 int initialize_TCP() {
 	int numbytes;
-	char buf[3];
+	char buf[4];
+    buf[3] = '\0';
 
 	if ((numbytes = recvfrom(sockfd, buf, 3, 0,
         (struct sockaddr *)&their_addr, &addr_len)) == -1) {
@@ -127,12 +113,13 @@ int initialize_TCP() {
 
     if (strcmp(buf,"SYN") != 0) {
     	printf("Received: %s\n", buf);
-        printf("Message size: %zu\n",strlen(buf));
     	cout << "Not a SYN... terminating.\n";
     	return -1; // indicates termination
     }
 
-	if ((numbytes = sendto(sockfd, ACK, strlen(ACK), 0,
+    cout << "SYN <--\n" << "ACK -->\n";
+
+	if ((numbytes = sendto(sockfd, ACK, 3, 0,
          (struct sockaddr *)&their_addr, addr_len)) == -1) {
     	perror("sender: sendto");
         exit(1);
@@ -202,4 +189,6 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     		last_SEQ += 1; // change the last_SEQ number
 	    }
 	}
+
+    close(sockfd);
 }
