@@ -9,6 +9,8 @@
 #include <netdb.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <iostream>
+#include <fstream>
 #include <ctime>
 #include <string>
 #include <cstring>
@@ -17,6 +19,7 @@ using namespace std;
 #define MAX_DATA_SIZE 1024
 #define SYN "SYN"
 #define ACK "ACK"
+#define END "END"
 
 int sockfd;
 struct addrinfo hints, *servinfo, *p;
@@ -25,6 +28,15 @@ socklen_t addr_len;
 unsigned long long int last_SEQ;
 
 void reliablyReceive(unsigned short int myUDPport, char* destinationFile);
+
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
 
 int main(int argc, char** argv)
 {
@@ -44,7 +56,6 @@ int main(int argc, char** argv)
 int setup_UDP(unsigned short int port) {
     int rv;
     int numbytes;
-    char buf[MAXBUFLEN];
     char s[INET6_ADDRSTRLEN];
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
@@ -66,7 +77,7 @@ int setup_UDP(unsigned short int port) {
             continue;
         }
 
-        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+        if (::bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) { // weird Mac thing!
             close(sockfd);
             perror("listener: bind");
             continue;
@@ -106,22 +117,23 @@ int setup_UDP(unsigned short int port) {
 
 int initialize_TCP() {
 	int numbytes;
-	char buf[MAX_DATA_SIZE];
+	char buf[3];
 
-	if ((numbytes = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
+	if ((numbytes = recvfrom(sockfd, buf, 3, 0,
         (struct sockaddr *)&their_addr, &addr_len)) == -1) {
         perror("recvfrom");
         exit(1);
     }
 
-    if (strcmp(buf,SYN) != 0) {
-    	cout << "Received: " + buf + "\n";
+    if (strcmp(buf,"SYN") != 0) {
+    	printf("Received: %s\n", buf);
+        printf("Message size: %zu\n",strlen(buf));
     	cout << "Not a SYN... terminating.\n";
     	return -1; // indicates termination
     }
 
 	if ((numbytes = sendto(sockfd, ACK, strlen(ACK), 0,
-         (struct sockaddr *)&their_addr, &addr_len)) == -1) {
+         (struct sockaddr *)&their_addr, addr_len)) == -1) {
     	perror("sender: sendto");
         exit(1);
     }
@@ -129,7 +141,7 @@ int initialize_TCP() {
 }
 
 void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
-
+    int numbytes;
 	//try to open file
 	ofstream myFile(destinationFile);
 	if (!myFile.is_open()) {
@@ -139,14 +151,15 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
 	if (setup_UDP(myUDPport) != 0) {
 		cout << "reliablyReceive: UDP socket setup failed... terminating.\n";
-		return -1;
+		return;// -1;
 	}
 
 	if (initialize_TCP() == -1) {
 		cout << "reliablyReceive: TCP connection could not be initialized... terminating.\n";
-		return -1;
+		return;// -1;
 	}
 
+    char buf[MAX_DATA_SIZE];
 	last_SEQ = 0;
 	bool running = true; // set to false when END packet received
 	while (running) {
@@ -169,7 +182,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	    	// we're missing a packet! resend the last ACK.
 	    	sprintf(ACK_msg, "ACK %llu", last_SEQ);
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
-         		(struct sockaddr *)&their_addr, &addr_len)) == -1) {
+         		(struct sockaddr *)&their_addr, addr_len)) == -1) {
     			perror("sender: sendto");
         		exit(1);
     		}	
@@ -178,17 +191,15 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	    	// in order packet! write it to file.
 	    	char * msg;
 	    	msg = strchr(buf,'\n'); 
-	    	myFile.write(msg);
+	    	myFile.write(msg,strlen(msg));
 	    	// send an ACK!
 	    	sprintf(ACK_msg, "ACK %llu", last_SEQ+1);
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
-         		(struct sockaddr *)&their_addr, &addr_len)) == -1) {
+         		(struct sockaddr *)&their_addr, addr_len)) == -1) {
     			perror("sender: sendto");
         		exit(1);
     		}
     		last_SEQ += 1; // change the last_SEQ number
 	    }
 	}
-
-	return 0;
 }
