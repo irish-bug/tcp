@@ -56,13 +56,15 @@ int initialize_TCP() {
 	gettimeofday(&tim, NULL);
 	double start = tim.tv_sec+(tim.tv_usec/1000000.0);
 	int numbytes;
-	if ((numbytes = sendto(sockfd, SYN, strlen(SYN), 0,
+
+	if ((numbytes = sendto(sockfd, SYN, 3, 0,
              p->ai_addr, 
              p->ai_addrlen)) == -1) {
         perror("sender: sendto");
         exit(1);
     }
     
+    // TODO: check for timeout here
     if ((numbytes = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
         	p->ai_addr, (socklen_t *)p->ai_addrlen)) == -1) {
         perror("recvfrom");
@@ -79,12 +81,6 @@ int initialize_TCP() {
     }
     else {
     	cout << "ACK received!\n";
-    }
-
-    if ((numbytes = sendto(sockfd, ACK, strlen(ACK), 0,
-             p->ai_addr, p->ai_addrlen)) == -1) {
-        perror("sender: sendto");
-        exit(1);
     }
 
 	return (stop - start); // return estimated timeout
