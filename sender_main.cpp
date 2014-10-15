@@ -49,7 +49,8 @@ unsigned long long int getACKnum(char * msg) {
 }
 
 int initialize_TCP() {
-	char buf[MAX_DATA_SIZE]; //store 
+	char buf[4]; //store 
+	buf[3] = '\0';
 
 	struct timeval tim;
 
@@ -57,16 +58,16 @@ int initialize_TCP() {
 	double start = tim.tv_sec+(tim.tv_usec/1000000.0);
 	int numbytes;
 
+	cout << "SYN -->\n";
 	if ((numbytes = sendto(sockfd, SYN, 3, 0,
-             p->ai_addr, 
-             p->ai_addrlen)) == -1) {
+             p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sender: sendto");
         exit(1);
     }
     
     // TODO: check for timeout here
-    if ((numbytes = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
-        	p->ai_addr, (socklen_t *)p->ai_addrlen)) == -1) {
+    if ((numbytes = recvfrom(sockfd, buf, 3, 0,
+        	p->ai_addr, (socklen_t *)&p->ai_addrlen)) == -1) {
         perror("recvfrom");
         exit(1);
     }
@@ -80,7 +81,7 @@ int initialize_TCP() {
     	return -1;
     }
     else {
-    	cout << "ACK received!\n";
+    	cout << "ACK <--\n";
     }
 
 	return (stop - start); // return estimated timeout
