@@ -134,11 +134,13 @@ void setup_UDP(char * hostname, unsigned short int port) {
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
 	unsigned long long int bytesRead;
 	// check for legit file
+
 	ifstream myFile(filename);
 	if(!myFile.is_open()) {
 		cout << "reliablyTransfer: Unable to open file.\n";
 		return;
 	}
+
 	// set up UDP connection
 	setup_UDP(hostname, hostUDPport);
 
@@ -174,7 +176,7 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 			}*/
             myFile.read(buf, MAX_DATA_SIZE);
             bytesRead += myFile.gcount();
-			cw.addPacket(buf);
+			cw.addPacket(buf, myFile.gcount());
 		}
 
 		// send the congestion window
