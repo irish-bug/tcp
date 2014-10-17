@@ -16,7 +16,7 @@
 #include <cstring>
 using namespace std;
 
-#define MAX_DATA_SIZE 1024
+#define MAX_DATA_SIZE 1200
 #define SYN "SYN"
 #define ACK "ACK"
 #define END "END"
@@ -51,6 +51,16 @@ int main(int argc, char** argv)
 	udpPort = (unsigned short int)atoi(argv[1]);
 	
 	reliablyReceive(udpPort, argv[2]);
+}
+
+char * stripSeqNumber(char * buf, int &bytesRead) {
+    int i=0;
+
+    while(buf[i] != '\n') {
+        i++;
+    }
+    bytesRead = bytesRead - (i+1);
+    return &buf[i+1];
 }
 
 int setup_UDP(unsigned short int port) {
@@ -129,6 +139,7 @@ int initialize_TCP() {
 
 void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     int numbytes;
+    int bytesRead;
 	//try to open file
 	ofstream myFile(destinationFile);
 	if (!myFile.is_open()) {
@@ -150,7 +161,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	last_SEQ = 0;
 	bool running = true; // set to false when END packet received
 	while (running) {
-		if ((numbytes = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
+		if ((bytesRead = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
 	        (struct sockaddr *)&their_addr, &addr_len)) == -1) {
 	        perror("recvfrom");
 	        exit(1);
@@ -163,11 +174,12 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
 	    unsigned long long int SEQ_num;
 	    sscanf(buf, "%llu", &SEQ_num);
+        char * msg = stripSeqNumber(buf, &bytesRead);
 
 	    char ACK_msg[MAX_DATA_SIZE];
 	    if (SEQ_num > (last_SEQ + 1)) { 
 	    	// we're missing a packet! resend the last ACK.
-	    	sprintf(ACK_msg, "ACK %llu", last_SEQ);
+	    	sprintf(ACK_msg, "%llu", last_SEQ);
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
          		(struct sockaddr *)&their_addr, addr_len)) == -1) {
     			perror("sender: sendto");
@@ -175,12 +187,10 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     		}	
 	    }
 	    else if (SEQ_num == (last_SEQ + 1)) {
-	    	// in order packet! write it to file.
-	    	char * msg;
-	    	msg = strchr(buf,'\n'); 
-	    	myFile.write(msg,strlen(msg));
+	    	// in order packet! write it to file.; 
+	    	myFile.write(msg,bytesRead);
 	    	// send an ACK!
-	    	sprintf(ACK_msg, "ACK %llu", last_SEQ+1);
+	    	sprintf(ACK_msg, "%llu", last_SEQ+1);
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
          		(struct sockaddr *)&their_addr, addr_len)) == -1) {
     			perror("sender: sendto");
