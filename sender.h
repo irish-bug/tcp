@@ -33,11 +33,13 @@ class Packet {
 private:
 	char data[MAX_DATA_SIZE];
 	unsigned long long int sequence_num;
+	unsigned int packet_len; // number of bytes in packet
 public:
 	void setSequenceNum(unsigned long long int num);
 	unsigned long long int getSequenceNum();
-	int setPacketData(char * buf);
+	int setPacketData(char * buf, unsigned int size);
 	void getPacketData(char * buf);
+	unsigned int getPacketSize();
 };
 
 class CongestionWindow {
@@ -62,7 +64,7 @@ public:
 	int getNumPktsToAdd();
 	// add growth schemes here
 
-	void addPacket(char * buf);
+	void addPacket(char * buf, unsigned int size);
 	void removePackets(int n); // pop n packets off the queue
 	void sendWindow(int sockfd, struct addrinfo * p); // send all the packets in CW
 	void cutWindow(); // reduce window size on three DUPACKS
