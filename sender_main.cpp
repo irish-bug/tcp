@@ -12,6 +12,8 @@
 #include <ctime>
 #include <string>
 #include <cstring>
+#include <thread>
+#include <mutex>
 #include "sender.h"
 using namespace std;
 
@@ -19,9 +21,17 @@ using namespace std;
 #define SYN "SYN"
 #define ACK_SIZE 128
 #define THRESHOLD 64 // TCP uses a threshold of 64KB
+#define TIMEOUT 30 // in milliseconds
 
 int sockfd;
 struct addrinfo * p;
+
+
+thread receiver;
+thread sender;
+mutex ACK_lock;
+unsigned long long int lastACK;
+unsigned int DUPACKctr;
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer);
 
@@ -44,18 +54,15 @@ int main(int argc, char** argv)
 
 unsigned long long int getACKnum(char * msg) {
 	// strip the ACK number from message
-	string ACKmsg(msg);
-	return 0;
+	unsigned long long int num;
+	sscanf(msg, "%llu", num)
+	return num;
 }
 
 int initialize_TCP() {
 	char buf[4]; //store 
 	buf[3] = '\0';
 
-	struct timeval tim;
-
-	gettimeofday(&tim, NULL);
-	double start = tim.tv_sec+(tim.tv_usec/1000000.0);
 	int numbytes;
 
 	cout << "SYN -->\n";
@@ -71,8 +78,6 @@ int initialize_TCP() {
         perror("recvfrom");
         exit(1);
     }
-    gettimeofday(&tim, NULL);
-    double stop = tim.tv_sec+(tim.tv_usec/1000000.0);
 
     string received (buf);
 
@@ -84,7 +89,7 @@ int initialize_TCP() {
     	cout << "ACK <--\n";
     }
 
-	return (stop - start); // return estimated timeout
+	return 0; // return estimated timeout
 }
 
 void setup_UDP(char * hostname, unsigned short int port) {
@@ -131,34 +136,58 @@ void setup_UDP(char * hostname, unsigned short int port) {
     close(sockfd);*/
 }
 
-void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
-	unsigned long long int bytesRead;
-	// check for legit file
+void receiveACKs() {
+	// listen for ACKs
+	// set a timeout on the recvfrom syscall
+	int numbytes, timeout;
+	char buf[MAX_DATA_SIZE];
 
-	ifstream myFile(filename);
-	if(!myFile.is_open()) {
-		cout << "reliablyTransfer: Unable to open file.\n";
-		return;
+	struct timeval tv;
+	tv.tv_sec = 0;
+	tv.tv_usec = 30000;
+	if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
+	    perror("Error");
 	}
 
-	// set up UDP connection
-	setup_UDP(hostname, hostUDPport);
+	while (1) {
+		timeout = 0;
+		if ((numbytes = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
+	        	p->ai_addr, (socklen_t *)&p->ai_addrlen)) == -1) {
+	        perror("recvfrom");
+	    	if(errno == EAGAIN || errno == EWOULDBLOCK) {
+	    		timeout = 1;
+	    	}
+	    	else {
+	        	exit(1);
+	        }
+	    }
 
-	// initialize TCP connection
-	int timeout;
-	if((timeout = initialize_TCP()) == -1) {
-		cout << "reliablyTransfer: Could not complete TCP handshake.\n";
-		return;
+	    if(timeout) {
+	    	ACK_lock.lock();
+	    	lastACK = -1;
+	    	ACK_lock.unlock();
+	    }
+	    else {
+	    	// we got an ACK
+	    	unsigned long long int ACKnum = getACKnum(buf);
+	    	// check if DUPACK
+	    	if (ACKnum == lastACK) {
+	    		ACK_lock.lock();
+	    		DUPACKctr++;
+	    		ACK_lock.unlock();
+	    	}
+	    	else if (ACKnum > lastACK) {
+	    		ACK_lock.lock();
+	    		lastACK = ACKnum;
+	    		ACK_lock.unlock();
+	    	}
+	    }
 	}
-	
-	CongestionWindow cw;
-	cw.setLowestSeqNum(1);
-	cw.setLastACK(0);
-	cw.setNewRTO(timeout);
-	cw.setWindowSize(1);
-	cw.setDUPACKcounter(0);
 
-	// THIS LOOP DOES SLOW START WITH MSS = 1
+}
+
+void sendPackets(ifstream myFile, unsigned long long int bytesToTransfer, CongestionWindow &cw) {
+
 	bool slowStart = true;
 	while ((bytesRead < bytesToTransfer) && slowStart) {
 		
@@ -171,20 +200,12 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 
 		char buf[MAX_DATA_SIZE];
 		for(int i=0; i<num_pkts; i++) {
-			/*if((bytes = myFile.read(buf, MAX_DATA_SIZE)) != -1) { // read 1KB into buf
-				bytesRead += bytes;
-			}*/
             myFile.read(buf, MAX_DATA_SIZE);
             bytesRead += myFile.gcount();
-			cw.addPacket(buf, myFile.gcount());
+			cw.addPacket(buf, myFile.gcount()); // this adds packets and sends them!
 		}
 
-		// send the congestion window
-		cw.sendWindow(sockfd, p);
-
-		// wait for an ACK until timeout
-		char resp[ACK_SIZE];
-
+		// CRITICAL SECTION
 		if (not timeout) {
 			unsigned long long int ACK_num = getACKnum(resp);
 			if (ACK_num == cw.getLastACK()) {
@@ -209,5 +230,45 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 			//timed out. reset CW to 1
 			cw.panicMode();
 		}
+		// END CRITICAL SECTION
 	}
+}
+
+void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
+	unsigned long long int bytesRead;
+	// check for legit file
+
+	ifstream myFile(filename);
+	if(!myFile.is_open()) {
+		cout << "reliablyTransfer: Unable to open file.\n";
+		return;
+	}
+
+	// set up UDP socket
+	setup_UDP(hostname, hostUDPport);
+
+	// initialize TCP connection
+	if(initialize_TCP() == -1) {
+		cout << "reliablyTransfer: Could not complete TCP handshake.\n";
+		return;
+	}
+	
+	// initialize the CongestionWindow
+	CongestionWindow cw;
+	cw.setLowestSeqNum(1);
+	cw.setLastACK(0);
+	cw.setNewRTO(timeout);
+	cw.setWindowSize(1);
+
+	// initialize the globals
+	lastACK = 0;
+	DUPACKctr = 0;
+
+    // create the sender thread
+	sender = thread(sendPackets, myFile, bytesToTransfer, &cw);
+	// create the receiver thread
+	receiver = thread(receiveACKs);
+
+	sender.join();
+    receiver.join();
 }
