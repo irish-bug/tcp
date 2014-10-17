@@ -206,17 +206,20 @@ void sendPackets(ifstream myFile, unsigned long long int bytesToTransfer, Conges
 		}
 
 		// CRITICAL SECTION
-		if (not timeout) {
-			unsigned long long int ACK_num = getACKnum(resp);
-			if (ACK_num == cw.getLastACK()) {
-				cw.incrementDUPACKcounter();
-				if(cw.getDUPACKcounter() == 3) {
-					//3 DUPACKS, cut the window!
+		ACK_lock.lock() // to read.
+		if (lastACK == -1) {
+			cw.panicMode();
+		}
+		else {
+			//timed out. reset CW to 1
+			if(lastACK == cw.getLastACK()) {
+				if(DUPACKctr >= 3) { // we're getting DUPACKs
+					cw.cutWindow();
 				}
 			}
-			else {
-				cw.setLastACK(ACK_num);
-				int diff = ACK_num - cw.getLowestSeqNum();
+			else if (lastACK > cw.getLastACK()) {
+				cw.setLastACK(lastACK);
+				int diff = lastACK - cw.getLowestSeqNum();
 				cw.removePackets(diff); // pop off ACKd packets
 				// increase congestion window
 				int ws = cw.getWindowSize() + 1;
@@ -225,11 +228,11 @@ void sendPackets(ifstream myFile, unsigned long long int bytesToTransfer, Conges
 					slowStart = false; // break out of slow start
 				}
 			}
+			else {
+				// got an earlier ACK - we don't care
+			}
 		}
-		else {
-			//timed out. reset CW to 1
-			cw.panicMode();
-		}
+		ACK_lock.unlock();
 		// END CRITICAL SECTION
 	}
 }
