@@ -36,17 +36,22 @@ unsigned long long int Packet::getSequenceNum() {
 	return sequence_num;
 }
 
-int Packet::setPacketData(char * buf) {
+int Packet::setPacketData(char * buf, unsigned int size) {
 	if (buf == NULL) {
 		cout << "setPacketData: Packet data buffer is NULL.\n";
 		return -1;
 	}
-	strcpy(data,buf);
+	packet_len = size;
+	strcpy(data, buf);
 	return 0;
 }
 
 void Packet::getPacketData(char * buf) {
 	strcpy(buf,data);
+}
+
+unsigned int Packet::getPacketSize() {
+	return packet_len;
 }
 
 /* CONGESTION WINDOW METHODS */
@@ -103,7 +108,8 @@ void CongestionWindow::sendWindow(int sockfd, struct addrinfo * p) {
 		int numbytes;
 		char buf[MAX_DATA_SIZE];
 		window[i].getPacketData(buf);
-		if ((numbytes = sendto(sockfd, buf, strlen(buf), 0,
+		unsigned int pkt_size = window[i].getPacketSize();
+		if ((numbytes = sendto(sockfd, buf, pkt_size, 0,
 	             p->ai_addr, p->ai_addrlen)) == -1) {
 	        perror("sender: sendto");
 	        exit(1);
@@ -111,10 +117,10 @@ void CongestionWindow::sendWindow(int sockfd, struct addrinfo * p) {
 	}
 }
 
-void CongestionWindow::addPacket(char * buf) {
+void CongestionWindow::addPacket(char * buf, unsigned int size) {
 	Packet pkt;
 	pkt.setSequenceNum(window.back().getSequenceNum() + 1);
-	pkt.setPacketData(buf);
+	pkt.setPacketData(buf, size);
 	window.push_back(pkt); // make sure this will be FIFO
 }
 
