@@ -55,7 +55,7 @@ int main(int argc, char** argv)
 unsigned long long int getACKnum(char * msg) {
 	// strip the ACK number from message
 	unsigned long long int num;
-	sscanf(msg, "%llu", num)
+	sscanf(msg, "%llu", num);
 	return num;
 }
 
@@ -187,7 +187,7 @@ void receiveACKs() {
 }
 
 void sendPackets(ifstream myFile, unsigned long long int bytesToTransfer, CongestionWindow &cw) {
-
+	unsigned long long int bytesRead = 0;
 	bool slowStart = true;
 	while ((bytesRead < bytesToTransfer) && slowStart) {
 		
@@ -206,7 +206,7 @@ void sendPackets(ifstream myFile, unsigned long long int bytesToTransfer, Conges
 		}
 
 		// CRITICAL SECTION
-		ACK_lock.lock() // to read.
+		ACK_lock.lock(); // to read.
 		if (lastACK == -1) {
 			cw.panicMode();
 		}
@@ -260,7 +260,6 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	CongestionWindow cw;
 	cw.setLowestSeqNum(1);
 	cw.setLastACK(0);
-	cw.setNewRTO(timeout);
 	cw.setWindowSize(1);
 
 	// initialize the globals
