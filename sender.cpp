@@ -122,6 +122,15 @@ void CongestionWindow::addPacket(char * buf, unsigned int size) {
 	pkt.setSequenceNum(window.back().getSequenceNum() + 1);
 	pkt.setPacketData(buf, size);
 	window.push_back(pkt); // make sure this will be FIFO
+	string seq_num = to_string(pkt.getSequenceNum());
+	int seq_num_size = seq_num.size();
+	pkt_size = size + seq_num_size + 1; //data + sequence num + new line
+	char msg[pkt_size];
+	sprintf(msg,"%s\n%s", seq_num.c_str(), buf);
+	if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+        perror("sender: sendto");
+        exit(1);
+    }
 }
 
 void CongestionWindow::removePackets(int n) {
