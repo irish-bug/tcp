@@ -31,6 +31,7 @@ thread receiver;
 thread sender;
 mutex ACK_lock;
 unsigned long long int lastACK;
+int timeout_FLAG;
 unsigned int DUPACKctr;
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer);
@@ -55,7 +56,7 @@ int main(int argc, char** argv)
 unsigned long long int getACKnum(char * msg) {
 	// strip the ACK number from message
 	unsigned long long int num;
-	sscanf(msg, "%llu", num);
+	sscanf(msg, "%llu", &num);
 	return num;
 }
 
@@ -72,7 +73,6 @@ int initialize_TCP() {
         exit(1);
     }
     
-    // TODO: check for timeout here
     if ((numbytes = recvfrom(sockfd, buf, 3, 0,
         	p->ai_addr, (socklen_t *)&p->ai_addrlen)) == -1) {
         perror("recvfrom");
@@ -164,7 +164,7 @@ void receiveACKs() {
 
 	    if(timeout) {
 	    	ACK_lock.lock();
-	    	lastACK = -1;
+	    	timeout_FLAG = 1;
 	    	ACK_lock.unlock();
 	    }
 	    else {
@@ -186,7 +186,7 @@ void receiveACKs() {
 
 }
 
-void sendPackets(ifstream myFile, unsigned long long int bytesToTransfer, CongestionWindow &cw) {
+void sendPackets(ifstream &myFile, unsigned long long int bytesToTransfer, CongestionWindow &cw) {
 	unsigned long long int bytesRead = 0;
 	bool slowStart = true;
 	while ((bytesRead < bytesToTransfer) && slowStart) {
@@ -207,8 +207,9 @@ void sendPackets(ifstream myFile, unsigned long long int bytesToTransfer, Conges
 
 		// CRITICAL SECTION
 		ACK_lock.lock(); // to read.
-		if (lastACK == -1) {
+		if (timeout_FLAG) {
 			cw.panicMode();
+            timeout_FLAG = 0;
 		}
 		else {
 			//timed out. reset CW to 1
@@ -265,9 +266,10 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	// initialize the globals
 	lastACK = 0;
 	DUPACKctr = 0;
+    timeout_FLAG = 0;
 
     // create the sender thread
-	sender = thread(sendPackets, myFile, bytesToTransfer, &cw);
+	sender = thread(sendPackets, &myFile, bytesToTransfer, &cw);
 	// create the receiver thread
 	receiver = thread(receiveACKs);
 
