@@ -171,6 +171,8 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	    	cout << "Got a termination packet!\n";
 	    	running = false;
 	    }
+        
+        cout << buf << "\n";
 
 	    unsigned long long int SEQ_num;
 	    sscanf(buf, "%llu", &SEQ_num);
