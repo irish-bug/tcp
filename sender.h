@@ -64,7 +64,7 @@ public:
 	int getNumPktsToAdd();
 	// add growth schemes here
 
-	void addPacket(char * buf, unsigned int size);
+	void addPacket(char * buf, unsigned int size, int sockfd, struct addrinfo * p);
 	void removePackets(int n); // pop n packets off the queue
 	void sendWindow(int sockfd, struct addrinfo * p); // send all the packets in CW
 	void cutWindow(); // reduce window size on three DUPACKS
