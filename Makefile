@@ -5,7 +5,7 @@
 
 CC = g++
 INC = -I.
-FLAGS = -std=c++0x -g -Wall
+FLAGS = -pthread -std=c++0x -g -Wall
 
 all: sender_main receiver_main
 
