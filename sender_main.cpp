@@ -25,7 +25,10 @@ using namespace std;
 
 int sockfd;
 struct addrinfo * p;
-
+CongestionWindow cw;
+unsigned long long int bytes;
+//ifstream myFile;
+char * file;
 
 thread receiver;
 thread sender;
@@ -186,11 +189,17 @@ void receiveACKs() {
 
 }
 
-void sendPackets(ifstream &myFile, unsigned long long int bytesToTransfer, CongestionWindow &cw) {
+void sendPackets() {
 	unsigned long long int bytesRead = 0;
 	bool slowStart = true;
 	int partialPacket = 0;
-	while (bytesRead < bytesToTransfer) {
+
+	ifstream myFile(file);
+	if(!myFile.is_open()) {
+		cout << "reliablyTransfer: Unable to open file.\n";
+		return;
+	}
+	while (bytesRead < bytes) {
 		
 		// read file into packets and place in cw vector
 		int num_pkts, bytes;
@@ -203,7 +212,7 @@ void sendPackets(ifstream &myFile, unsigned long long int bytesToTransfer, Conge
 		for(int i=0; i<num_pkts; i++) {
             myFile.read(buf, MAX_DATA_SIZE);
             bytesRead += myFile.gcount();
-			cw.addPacket(buf, myFile.gcount()); // this adds packets and sends them!
+			cw.addPacket(buf, myFile.gcount(), sockfd, p); // this adds packets and sends them!
 		}
 
 		// CRITICAL SECTION
@@ -220,14 +229,15 @@ void sendPackets(ifstream &myFile, unsigned long long int bytesToTransfer, Conge
 				}
 			}
 			else if (lastACK > cw.getLastACK()) {
+				int ws;
 				cw.setLastACK(lastACK);
 				int diff = lastACK - cw.getLowestSeqNum();
 				cw.removePackets(diff); // pop off ACKd packets
 				// increase congestion window
-				if(slowStart){int ws = cw.getWindowSize() + 1;}
+				if(slowStart){ws = cw.getWindowSize() + 1;}
 				else{
 					partialPacket++;
-					if(partialPacket == cw.getWindowSize()) {int ws = cw.getWindowSize() + 1;}
+					if(partialPacket == cw.getWindowSize()) {ws = cw.getWindowSize() + 1;}
 				}
 				cw.setWindowSize(ws);
 				if(ws >= THRESHOLD) {
@@ -244,14 +254,9 @@ void sendPackets(ifstream &myFile, unsigned long long int bytesToTransfer, Conge
 }
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
-	unsigned long long int bytesRead;
-	// check for legit file
+	bytes = bytesToTransfer;
 
-	ifstream myFile(filename);
-	if(!myFile.is_open()) {
-		cout << "reliablyTransfer: Unable to open file.\n";
-		return;
-	}
+	file = filename;
 
 	// set up UDP socket
 	setup_UDP(hostname, hostUDPport);
@@ -263,7 +268,7 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	}
 	
 	// initialize the CongestionWindow
-	CongestionWindow cw;
+	//CongestionWindow cw;
 	cw.setLowestSeqNum(1);
 	cw.setLastACK(0);
 	cw.setWindowSize(1);
@@ -274,7 +279,7 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
     timeout_FLAG = 0;
 
     // create the sender thread
-	sender = thread(sendPackets, &myFile, bytesToTransfer, &cw);
+	sender = thread(sendPackets);
 	// create the receiver thread
 	receiver = thread(receiveACKs);
 
