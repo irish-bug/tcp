@@ -120,14 +120,22 @@ void CongestionWindow::sendWindow(int sockfd, struct addrinfo * p) {
 void CongestionWindow::addPacket(char * buf, unsigned int size, int sockfd, struct addrinfo * p) {
 	int numbytes;
 	Packet pkt;
-	pkt.setSequenceNum(window.back().getSequenceNum() + 1);
+    unsigned long long int seqnum;
+    if(window.empty()) {
+        seqnum = 1;
+    }
+    else {
+        seqnum = window.back().getSequenceNum() + 1;
+	}
+    pkt.setSequenceNum(seqnum);
 	pkt.setPacketData(buf, size);
 	window.push_back(pkt); // make sure this will be FIFO
-	string seq_num = to_string(pkt.getSequenceNum());
+	string seq_num = to_string(seqnum);
 	int seq_num_size = seq_num.size();
 	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
 	char msg[pkt_size];
 	sprintf(msg,"%s\n%s", seq_num.c_str(), buf);
+    cout << "Sending packet: " << msg << "\n";
 	if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sender: sendto");
         exit(1);

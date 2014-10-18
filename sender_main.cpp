@@ -157,7 +157,7 @@ void receiveACKs() {
 		timeout = 0;
 		if ((numbytes = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
 	        	p->ai_addr, (socklen_t *)&p->ai_addrlen)) == -1) {
-	        perror("recvfrom");
+	        //perror("recvfrom");
 	    	if(errno == EAGAIN || errno == EWOULDBLOCK) {
 	    		timeout = 1;
 	    	}
@@ -212,6 +212,7 @@ void sendPackets() {
 		char buf[MAX_DATA_SIZE];
 		for(int i=0; i<num_pkts; i++) {
             myFile.read(buf, MAX_DATA_SIZE);
+            cout << buf << "\n";
             bytesRead += myFile.gcount();
 			cw.addPacket(buf, myFile.gcount(), sockfd, p); // this adds packets and sends them!
 		}
