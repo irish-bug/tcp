@@ -165,6 +165,7 @@ void receiveACKs() {
 	        	exit(1);
 	        }
 	    }
+	    //cout << "Received: " << buf << "\n";
 
 	    if(timeout) {
 	    	ACK_lock.lock();
@@ -204,18 +205,27 @@ void sendPackets() {
 	while (bytesRead < bytes) {
 		
 		// read file into packets and place in cw vector
-		int num_pkts;//, bytes;
+		int num_pkts, packet_size;//, bytes;
 
 		if((num_pkts = cw.getNumPktsToAdd()) < 0) {
 			num_pkts = 0;
 		}
+		cout <<  "num_pkts = " << num_pkts << endl;
 
 		char buf[MAX_DATA_SIZE];
 		for(int i=0; i<num_pkts; i++) {
-            myFile.read(buf, MAX_DATA_SIZE);
-            cout << buf << "\n";
+			
+			if (bytesRead >= bytes) {
+				return;
+			}
+
+            myFile.read(buf, min(bytes,(unsigned long long int)MAX_DATA_SIZE));
+            int diff = bytes - bytesRead;
             bytesRead += myFile.gcount();
-			cw.addPacket(buf, myFile.gcount(), sockfd, p); // this adds packets and sends them!
+            if(diff > 0 && diff < 1024){ packet_size = diff;}
+            else {packet_size = 1024;}
+
+			cw.addPacket(buf, packet_size, sockfd, p); // this adds packets and sends them!
 		}
 
 		// CRITICAL SECTION
@@ -233,6 +243,7 @@ void sendPackets() {
 			}
 			else if (lastACK > cw.getLastACK()) {
 				int ws;
+				cout << "LastACK = " << lastACK << endl;
 				cw.setLastACK(lastACK);
 				int diff = lastACK - cw.getLowestSeqNum();
 				cw.removePackets(diff); // pop off ACKd packets
@@ -272,9 +283,10 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	
 	// initialize the CongestionWindow
 	//CongestionWindow cw;
-	cw.setLowestSeqNum(1);
+	cw.setLowestSeqNum(0);
 	cw.setLastACK(0);
 	cw.setWindowSize(1);
+	cw.setHighestSeqNum(0);
 
 	// initialize the globals
 	lastACK = 0;

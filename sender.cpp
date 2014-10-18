@@ -42,7 +42,7 @@ int Packet::setPacketData(char * buf, unsigned int size) {
 		return -1;
 	}
 	packet_len = size;
-	strcpy(data, buf);
+	strncpy(data, buf, size);
 	return 0;
 }
 
@@ -71,6 +71,14 @@ unsigned long long int CongestionWindow::getLowestSeqNum() {
 	return lowest_seq_num;
 }
 	
+void CongestionWindow::setHighestSeqNum(unsigned long long int new_num) {
+	highest_seq_num = new_num;
+}
+
+unsigned long long int CongestionWindow::getHighestSeqNum() {
+	return highest_seq_num;
+}
+
 void CongestionWindow::setLastACK(unsigned long long int ACK_num) {
 	last_ACK = ACK_num;
 }
@@ -121,12 +129,13 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, int sockfd, stru
 	int numbytes;
 	Packet pkt;
     unsigned long long int seqnum;
-    if(window.empty()) {
+    /*if(window.empty()) {
         seqnum = 1;
     }
     else {
         seqnum = window.back().getSequenceNum() + 1;
-	}
+	}*/
+    seqnum = highest_seq_num + 1;
     pkt.setSequenceNum(seqnum);
 	pkt.setPacketData(buf, size);
 	window.push_back(pkt); // make sure this will be FIFO
@@ -135,11 +144,16 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, int sockfd, stru
 	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
 	char msg[pkt_size];
 	sprintf(msg,"%s\n%s", seq_num.c_str(), buf);
-    cout << "Sending packet: " << msg << "\n";
-	if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+	
+	char new_msg[pkt_size];
+	strncpy(new_msg, msg, pkt_size);
+    
+    cout << "Sending packet: " << new_msg << "\n";
+	if ((numbytes = sendto(sockfd, new_msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sender: sendto");
         exit(1);
     }
+    highest_seq_num += 1;
 }
 
 void CongestionWindow::removePackets(int n) {

@@ -45,6 +45,7 @@ public:
 class CongestionWindow {
 private:
 	unsigned long long int lowest_seq_num;
+	unsigned long long int highest_seq_num;
 	unsigned long long int last_ACK;
 	int RTO;
 	int window_size;
@@ -53,6 +54,8 @@ private:
 public:
 	void setLowestSeqNum(unsigned long long int new_num);
 	unsigned long long int getLowestSeqNum();
+	void setHighestSeqNum(unsigned long long int new_num);
+	unsigned long long int getHighestSeqNum();
 	void setLastACK(unsigned long long int ACK_num);
 	unsigned long long int getLastACK();
 	void setNewRTO(int timeout);

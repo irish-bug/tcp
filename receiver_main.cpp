@@ -25,7 +25,7 @@ int sockfd;
 struct addrinfo hints, *servinfo, *p;
 struct sockaddr_storage their_addr;
 socklen_t addr_len;
-unsigned long long int last_SEQ;
+
 
 void reliablyReceive(unsigned short int myUDPport, char* destinationFile);
 
@@ -158,7 +158,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	}
 
     char buf[MAX_DATA_SIZE];
-	last_SEQ = 0;
+	unsigned long long int last_SEQ = 0;
 	bool running = true; // set to false when END packet received
 	while (running) {
 		if ((bytesRead = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
@@ -166,6 +166,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	        perror("recvfrom");
 	        exit(1);
 	    }
+        cout << "Packet size: " << bytesRead << "\n";
 
 	    if (strcmp(buf,END) == 0) {
 	    	cout << "Got a termination packet!\n";
@@ -176,10 +177,14 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
 	    unsigned long long int SEQ_num;
 	    sscanf(buf, "%llu", &SEQ_num);
+        printf("SEQ_num is %llu and last_SEQ is %llu\n", SEQ_num, last_SEQ);
         char * msg = stripSeqNumber(buf, bytesRead);
 
 	    char ACK_msg[MAX_DATA_SIZE];
-	    if (SEQ_num > (last_SEQ + 1)) { 
+        unsigned long long int nextSeq = last_SEQ + 1;
+        printf("SEQ_num is %llu and nextSeq is %llu\n", SEQ_num, nextSeq);
+	    if (SEQ_num > nextSeq) {
+            printf("Greetings from IF\n"); 
 	    	// we're missing a packet! resend the last ACK.
 	    	sprintf(ACK_msg, "%llu", last_SEQ);
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
@@ -188,18 +193,27 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
         		exit(1);
     		}	
 	    }
-	    else if (SEQ_num == (last_SEQ + 1)) {
-	    	// in order packet! write it to file.; 
-	    	myFile.write(msg,bytesRead);
+	    else if (SEQ_num == nextSeq) {
+            printf("Greetings from Else IF\n");
+	    	// in order packet! write it to file.;
+            cout << "Bytes read: " << bytesRead << "\n";
+            cout << "Message: " << msg << endl;
+	    	
 	    	// send an ACK!
-	    	sprintf(ACK_msg, "%llu", last_SEQ+1);
+	    	sprintf(ACK_msg, "%llu", nextSeq);
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
          		(struct sockaddr *)&their_addr, addr_len)) == -1) {
     			perror("sender: sendto");
         		exit(1);
     		}
-    		last_SEQ += 1; // change the last_SEQ number
+    		last_SEQ++; // change the last_SEQ number
+            myFile.write(msg, bytesRead);
+            myFile.flush();
 	    }
+        else {
+            cout << "what the hell\n";
+        }
+        //printf("SEQ_num is %llu and last_SEQ is %llu\n", SEQ_num, last_SEQ);
 	}
 
     close(sockfd);
