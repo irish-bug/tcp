@@ -1,5 +1,5 @@
 #
-# Machine Problem #1
+# Machine Problem #2
 # CS 438
 #
 
