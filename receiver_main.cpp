@@ -65,8 +65,8 @@ char * stripSeqNumber(char * buf, int &bytesRead) {
 
 int setup_UDP(unsigned short int port) {
     int rv;
-    int numbytes;
-    char s[INET6_ADDRSTRLEN];
+    //int numbytes;
+    //char s[INET6_ADDRSTRLEN];
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC; // set to AF_INET to force IPv4
     hints.ai_socktype = SOCK_DGRAM;
