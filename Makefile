@@ -5,7 +5,7 @@
 
 CC = g++
 INC = -I.
-FLAGS = -pthread -std=c++0x -g -Wall
+FLAGS = -pthread -std=c++11 -g -Wall
 
 all: sender_main receiver_main
 
@@ -16,7 +16,7 @@ receiver_main.o: receiver_main.cpp
 	$(CC) -c $(FLAGS) $(INC) $< -o $@
 
 sender_main.o: sender_main.cpp
-	$(CC) -c $(FLAGS) $(INC) $< -o $@
+	$(CC) -c $(INC) $< -o $@ $(FLAGS)
 
 sender: sender.o
 	$(CC) $^ -o $@
@@ -25,7 +25,7 @@ receiver_main: receiver_main.o
 	$(CC) $^ -o $@
 
 sender_main: sender_main.o sender.o
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ $(FLAGS)
 
 .PHONY : clean
 clean:
