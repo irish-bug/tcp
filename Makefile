@@ -6,26 +6,27 @@
 CC = g++
 INC = -I.
 FLAGS = -std=c++0x -g -Wall
+LIBS = -lpthread
 
 all: sender_main receiver_main
 
 sender.o: sender.cpp sender.h
-	$(CC) -c $(FLAGS) $(INC) $< -o $@
+	$(CC) -c $(FLAGS) $(INC) $< -o $@ $(LIBS)
 
 receiver_main.o: receiver_main.cpp
-	$(CC) -c $(FLAGS) $(INC) $< -o $@
+	$(CC) -c $(FLAGS) $(INC) $< -o $@ $(LIBS)
 
 sender_main.o: sender_main.cpp
-	$(CC) -c $(FLAGS) $(INC) $< -o $@
+	$(CC) -c $(FLAGS) $(INC) $< -o $@ $(LIBS)
 
 sender: sender.o
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ $(LIBS)
 
 receiver_main: receiver_main.o
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ $(LIBS)
 
 sender_main: sender_main.o sender.o
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ $(LIBS)
 
 .PHONY : clean
 clean:
