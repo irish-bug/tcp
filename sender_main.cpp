@@ -189,7 +189,8 @@ void receiveACKs() {
 void sendPackets(ifstream &myFile, unsigned long long int bytesToTransfer, CongestionWindow &cw) {
 	unsigned long long int bytesRead = 0;
 	bool slowStart = true;
-	while ((bytesRead < bytesToTransfer) && slowStart) {
+	int partialPacket = 0;
+	while (bytesRead < bytesToTransfer) {
 		
 		// read file into packets and place in cw vector
 		int num_pkts, bytes;
@@ -223,7 +224,11 @@ void sendPackets(ifstream &myFile, unsigned long long int bytesToTransfer, Conge
 				int diff = lastACK - cw.getLowestSeqNum();
 				cw.removePackets(diff); // pop off ACKd packets
 				// increase congestion window
-				int ws = cw.getWindowSize() + 1;
+				if(slowStart){int ws = cw.getWindowSize() + 1;}
+				else{
+					partialPacket++;
+					if(partialPacket == cw.getWindowSize()) {int ws = cw.getWindowSize() + 1;}
+				}
 				cw.setWindowSize(ws);
 				if(ws >= THRESHOLD) {
 					slowStart = false; // break out of slow start
