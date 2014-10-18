@@ -82,10 +82,11 @@ int initialize_TCP() {
         exit(1);
     }
 
-    string received (buf);
+    //string received (buf);
+    cout << buf << "\n";
 
-    if (received.compare("ACK") != 0) {
-    	cout << "Received: " << received << ".\n";
+    if (strcmp(buf,"ACK") != 0) {
+    	cout << "Received: " << buf << ".\n";
     	return -1;
     }
     else {
