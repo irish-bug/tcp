@@ -174,7 +174,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 
 	    unsigned long long int SEQ_num;
 	    sscanf(buf, "%llu", &SEQ_num);
-        char * msg = stripSeqNumber(buf, &bytesRead);
+        char * msg = stripSeqNumber(buf, bytesRead);
 
 	    char ACK_msg[MAX_DATA_SIZE];
 	    if (SEQ_num > (last_SEQ + 1)) { 
