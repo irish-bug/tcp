@@ -100,7 +100,7 @@ void setup_UDP(char * hostname, unsigned short int port) {
 	//int sockfd;
     struct addrinfo hints, *servinfo;//, *p;
     int rv;
-    int numbytes;
+    //int numbytes;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
@@ -203,7 +203,7 @@ void sendPackets() {
 	while (bytesRead < bytes) {
 		
 		// read file into packets and place in cw vector
-		int num_pkts, bytes;
+		int num_pkts;//, bytes;
 
 		if((num_pkts = cw.getNumPktsToAdd()) < 0) {
 			num_pkts = 0;
