@@ -200,6 +200,7 @@ void sendPackets() {
 		cout << "reliablyTransfer: Unable to open file.\n";
 		return;
 	}
+	printf("The value of bytes is %llu\n", bytes);
 	while (bytesRead < bytes) {
 		
 		// read file into packets and place in cw vector
