@@ -19,7 +19,7 @@ using namespace std;
 #define MAX_DATA_SIZE 1200
 #define SYN "SYN"
 #define ACK "ACK"
-#define END "END"
+#define END "END\n"
 
 int sockfd;
 struct addrinfo hints, *servinfo, *p;
@@ -168,12 +168,12 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	    }
         cout << "Packet size: " << bytesRead << "\n";
 
-	    if (strcmp(buf,END) == 0) {
+	    if (memcmp(buf,END,4) == 0) {
 	    	cout << "Got a termination packet!\n";
 	    	running = false;
 	    }
         
-        cout << buf << "\n";
+        //cout << buf << "\n";
 
 	    unsigned long long int SEQ_num;
 	    sscanf(buf, "%llu", &SEQ_num);
@@ -211,7 +211,12 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
             myFile.flush();
 	    }
         else {
-            cout << "what the hell\n";
+            cout << "Sending termination packet!\n";
+            if ((numbytes = sendto(sockfd, END, 4, 0,
+                (struct sockaddr *)&their_addr, addr_len)) == -1) {
+                perror("sender: sendto");
+                exit(1);
+            }
         }
         //printf("SEQ_num is %llu and last_SEQ is %llu\n", SEQ_num, last_SEQ);
 	}

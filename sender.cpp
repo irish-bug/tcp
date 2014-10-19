@@ -99,7 +99,8 @@ void CongestionWindow::removePackets(int n) {
 }
 
 int CongestionWindow::getNumPktsToAdd() {
-	return window_size - window.size(); // number of packets that need to be added
+	//cout << "num_pkts = " << window_size - window.size() << endl;
+	return window_size - (highest_seq_num - lowest_seq_num + 1); // number of packets that need to be added
 }
 
 void CongestionWindow::cutWindow(){

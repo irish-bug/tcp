@@ -19,6 +19,7 @@ using namespace std;
 
 #define ACK "ACK"
 #define SYN "SYN"
+#define END "END\n"
 #define ACK_SIZE 128
 #define THRESHOLD 64 // TCP uses a threshold of 64KB
 #define TIMEOUT 30 // in milliseconds
@@ -66,8 +67,7 @@ unsigned long long int getACKnum(char * msg) {
 }
 
 int initialize_TCP() {
-	char buf[4]; //store 
-	buf[3] = '\0';
+	char buf[3]; //store 
 
 	int numbytes;
 
@@ -84,10 +84,9 @@ int initialize_TCP() {
         exit(1);
     }
 
-    //string received (buf);
     cout << buf << "\n";
 
-    if (strcmp(buf,"ACK") != 0) {
+    if (memcmp(buf,"ACK",3) != 0) {
     	cout << "Received: " << buf << ".\n";
     	return -1;
     }
@@ -174,6 +173,10 @@ void receiveACKs() {
 	    }
 	    else {
 	    	// we got an ACK
+	    	if (memcmp(buf,END,4) == 0) {
+	    		cout << "Got a termination packet!\n";
+	    		return;
+	    	}
 	    	unsigned long long int ACKnum = getACKnum(buf);
 	    	// check if DUPACK
 	    	if (ACKnum == lastACK) {
@@ -184,6 +187,7 @@ void receiveACKs() {
 	    	else if (ACKnum > lastACK) {
 	    		ACK_lock.lock();
 	    		lastACK = ACKnum;
+	    		cout << "lastACK = " << lastACK << endl;
 	    		ACK_lock.unlock();
 	    	}
 	    }
@@ -203,11 +207,15 @@ void sendPackets() {
 	}
 	printf("The value of bytes is %llu\n", bytes);
 	while (bytesRead < bytes) {
+		cout << "bytes = " << bytes << endl;
+		cout << "bytesRead = " << bytesRead << endl;
 		
 		// read file into packets and place in cw vector
 		int num_pkts, packet_size;//, bytes;
+		unsigned long long int low = cw.getLowestSeqNum();
+		num_pkts = (low + cw.getWindowSize()) - SEQ;
 
-		if((num_pkts = cw.getNumPktsToAdd()) < 0) {
+		if(num_pkts < 0) {
 			num_pkts = 0;
 		}
 		//cout <<  "num_pkts = " << num_pkts << endl;
@@ -222,11 +230,12 @@ void sendPackets() {
 
             myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
             cout << "bytes - bytesRead = " << diff << endl;
-            bytesRead += myFile.gcount();
+            bytesRead += min(diff,(unsigned long long int)MAX_DATA_SIZE);
             if(diff > 0 && diff < 1024){ packet_size = diff;}
             else {packet_size = 1024;}
 
 			cw.addPacket(buf, packet_size, SEQ, sockfd, p); // this adds packets and sends them!
+			cw.setHighestSeqNum(SEQ);
 			SEQ++;
 		}
 
@@ -247,7 +256,7 @@ void sendPackets() {
 			}
 			else if (lastACK > cw.getLastACK()) {
 				int ws;
-				cout << "lastACK = " << lastACK << endl;
+				//cout << "lastACK = " << lastACK << endl;
 				cw.setLastACK(lastACK);
 				int diff = lastACK - cw.getLowestSeqNum() + 1;
 				cw.removePackets(diff); // pop off ACKd packets
@@ -274,6 +283,12 @@ void sendPackets() {
 		ACK_lock.unlock();
 		// END CRITICAL SECTION
 	}
+	cout << "Sending termination packet!\n";
+	int numbytes;
+	if ((numbytes = sendto(sockfd, END, 4, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+        perror("sender: sendto");
+        exit(1);
+    }
 }
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
@@ -308,5 +323,5 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	receiver = thread(receiveACKs);
 
 	sender.join();
-    receiver.join();
+    receiver.join(); 
 }
