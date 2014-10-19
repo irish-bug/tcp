@@ -130,8 +130,9 @@ unsigned long long int CongestionWindow::sendWindow(int sockfd, struct addrinfo 
 	        perror("sender: sendto");
 	        exit(1);
 	    }	
+	    lastSent = seqnum;
 	}
-	lastSent = seqnum;
+	//lastSent = seqnum;
 	return seqnum;
 }
 
@@ -140,6 +141,7 @@ void CongestionWindow::sendPacket(int index, int sockfd, struct addrinfo * p) {
 	int numbytes;
 
 	unsigned long long int seqnum = pkt.getSequenceNum();
+	//cout << "PKT" << seqnum << endl;
 	char data[MAX_DATA_SIZE];
 	pkt.getPacketData(data);
 	unsigned int size = pkt.getPacketSize();
