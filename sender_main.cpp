@@ -23,6 +23,8 @@ using namespace std;
 #define THRESHOLD 64 // TCP uses a threshold of 64KB
 #define TIMEOUT 30 // in milliseconds
 
+unsigned long long int SEQ;
+
 int sockfd;
 struct addrinfo * p;
 CongestionWindow cw;
@@ -157,7 +159,6 @@ void receiveACKs() {
 		timeout = 0;
 		if ((numbytes = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
 	        	p->ai_addr, (socklen_t *)&p->ai_addrlen)) == -1) {
-	        //perror("recvfrom");
 	    	if(errno == EAGAIN || errno == EWOULDBLOCK) {
 	    		timeout = 1;
 	    	}
@@ -165,7 +166,6 @@ void receiveACKs() {
 	        	exit(1);
 	        }
 	    }
-	    //cout << "Received: " << buf << "\n";
 
 	    if(timeout) {
 	    	ACK_lock.lock();
@@ -210,20 +210,23 @@ void sendPackets() {
 		if((num_pkts = cw.getNumPktsToAdd()) < 0) {
 			num_pkts = 0;
 		}
-		cout <<  "num_pkts = " << num_pkts << endl;
+		//cout <<  "num_pkts = " << num_pkts << endl;
 
 		char buf[MAX_DATA_SIZE];
 		for(int i=0; i<num_pkts; i++) {
 			if (bytesRead >= bytes) {
 				return;
 			}
-            myFile.read(buf, min(bytes,(unsigned long long int)MAX_DATA_SIZE));
-            int diff = bytes - bytesRead;
+			unsigned long long int diff = bytes - bytesRead;
+
+            myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
+            cout << "bytes - bytesRead = " << diff << endl;
             bytesRead += myFile.gcount();
             if(diff > 0 && diff < 1024){ packet_size = diff;}
             else {packet_size = 1024;}
 
-			cw.addPacket(buf, packet_size, sockfd, p); // this adds packets and sends them!
+			cw.addPacket(buf, packet_size, SEQ, sockfd, p); // this adds packets and sends them!
+			SEQ++;
 		}
 
 		// CRITICAL SECTION
@@ -239,13 +242,15 @@ void sendPackets() {
 				if(DUPACKctr >= 3) { // we're getting DUPACKs
 					cw.cutWindow();
 				}
+				//cw.setHighestSeqNum(cw.getLowestSeqNum + cw.getWindowSize() - 1);
 			}
 			else if (lastACK > cw.getLastACK()) {
 				int ws;
-				cout << "LastACK = " << lastACK << endl;
+				cout << "lastACK = " << lastACK << endl;
 				cw.setLastACK(lastACK);
-				int diff = lastACK - cw.getLowestSeqNum();
+				int diff = lastACK - cw.getLowestSeqNum() + 1;
 				cw.removePackets(diff); // pop off ACKd packets
+				
 				// increase congestion window
 				if(slowStart){ws = cw.getWindowSize() + 1;}
 				else{
@@ -256,6 +261,10 @@ void sendPackets() {
 				if(ws >= THRESHOLD) {
 					slowStart = false; // break out of slow start
 				}
+				unsigned long long int new_low = lastACK + 1;
+				//unsigned long long int new_high = ws + new_low - 1;
+				cw.setLowestSeqNum(new_low);
+				//cw.setHighestSeqNum(new_high);
 			}
 			else {
 				// got an earlier ACK - we don't care
@@ -281,16 +290,16 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	}
 	
 	// initialize the CongestionWindow
-	//CongestionWindow cw;
-	cw.setLowestSeqNum(0);
+	cw.setLowestSeqNum(1);
 	cw.setLastACK(0);
 	cw.setWindowSize(1);
-	cw.setHighestSeqNum(0);
+	cw.setHighestSeqNum(1);
 
 	// initialize the globals
 	lastACK = 0;
 	DUPACKctr = 0;
     timeout_FLAG = 0;
+    SEQ = 1;
 
     // create the sender thread
 	sender = thread(sendPackets);
