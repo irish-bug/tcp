@@ -214,11 +214,9 @@ void sendPackets() {
 
 		char buf[MAX_DATA_SIZE];
 		for(int i=0; i<num_pkts; i++) {
-			
 			if (bytesRead >= bytes) {
 				return;
 			}
-
             myFile.read(buf, min(bytes,(unsigned long long int)MAX_DATA_SIZE));
             int diff = bytes - bytesRead;
             bytesRead += myFile.gcount();
@@ -232,6 +230,7 @@ void sendPackets() {
 		ACK_lock.lock(); // to read.
 		if (timeout_FLAG) {
 			cw.panicMode();
+			slowStart = true;
             timeout_FLAG = 0;
 		}
 		else {

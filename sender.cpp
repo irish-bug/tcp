@@ -160,7 +160,12 @@ void CongestionWindow::removePackets(int n) {
 	for(int i=0; i < n; i++) {
 		window.pop_front();
 	}
-	lowest_seq_num = window.front().getSequenceNum();
+	if (window.empty()) {
+		lowest_seq_num = 0;
+	}
+	else {
+		lowest_seq_num = window.front().getSequenceNum();
+	}
 }
 
 int CongestionWindow::getNumPktsToAdd() {
@@ -173,6 +178,7 @@ void CongestionWindow::cutWindow(){
 
 void CongestionWindow::panicMode() {
 	window_size = 1;
+
 }
 
 
