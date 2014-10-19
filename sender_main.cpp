@@ -182,6 +182,8 @@ void receiveACKs() {
 	    		ACK_lock.lock();
 	    		DUPACKctr++;
 	    		ACK_lock.unlock();
+	    		cout << "lastACK = " << lastACK << endl;
+	    		cout << "DUPACKctr= " << DUPACKctr << endl;
 	    	}
 	    	else if (ACKnum > lastACK) {
 	    		ACK_lock.lock();
@@ -260,6 +262,7 @@ void sendPackets() {
 		else {
 			//timed out. reset CW to 1
 			if(lastACK == cw.getLastACK()) {
+				cout << "DUPACK!\n";
 				if(DUPACKctr >= 3) { // we're getting DUPACKs
 					cw.cutWindow();
 				}
