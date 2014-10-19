@@ -104,8 +104,4 @@ void CongestionWindow::cutWindow(){
 void CongestionWindow::panicMode() {
 	window_size = 1;
 }
-void CongestionWindow::initCongestionWindow(){
-
-	//window = new deque<Packet>;
-}
 
