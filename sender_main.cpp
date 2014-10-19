@@ -24,7 +24,7 @@ using namespace std;
 #define THRESHOLD 64 // TCP uses a threshold of 64KB
 #define TIMEOUT 30 // in milliseconds
 
-unsigned long long int SEQ;
+unsigned long long int SEQ; // keeps track of SEQ for adding packets
 
 int sockfd;
 struct addrinfo * p;
@@ -40,6 +40,7 @@ unsigned long long int lastACK;
 int timeout_FLAG;
 int done_FLAG;
 unsigned int DUPACKctr;
+unsigned long long int bytesSent;
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer);
 
@@ -185,6 +186,7 @@ void receiveACKs() {
 	    		ACK_lock.lock();
 	    		DUPACKctr++;
 	    		ACK_lock.unlock();
+	    		bytesSent = ACKnum * 1024;
 	    		//cout << "lastACK = " << lastACK << endl;
 	    		//cout << "DUPACKctr= " << DUPACKctr << endl;
 	    	}
@@ -192,15 +194,57 @@ void receiveACKs() {
 	    		ACK_lock.lock();
 	    		lastACK = ACKnum;
 	    		//cout << "lastACK = " << lastACK << endl;
-	    		if(done_FLAG && (lastACK == SEQ-1)) {
+	    		if(done_FLAG && (lastACK == cw.getLastSent())) {
 	    			running = 0;
 	    		}
+	    		bytesSent = ACKnum * 1024;
 	    		ACK_lock.unlock();
 	    	}
 	    }
 	}
 
 }
+
+/*unsigned long long int addAndSendPackets(ifstream myFile) {
+	unsigned long long int bytesRead = 0;
+	int numPktsToAdd, numPktsToSend, index, packet_size;
+
+	numPktsToAdd = cw.getNumPktsToAdd();
+
+	if(numPktsToAdd < 0) {
+		numPktsToAdd = 0;
+	}
+
+	char buf[MAX_DATA_SIZE];
+	for(int i=0; i<numPktsToAdd; i++) {
+		if (bytesRead >= bytes) { break; }
+
+		unsigned long long int diff = bytes - bytesRead;
+        myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
+        bytesRead += min(diff,(unsigned long long int)MAX_DATA_SIZE);
+
+        if(diff > 0 && diff < MAX_DATA_SIZE) { 
+        	packet_size = diff; 
+        }
+        else { 
+        	packet_size = MAX_DATA_SIZE; 
+        }
+
+		cw.addPacket(buf, packet_size, SEQ, sockfd, p); // this adds packets and sends them!
+		cw.setHighestSeqNum(SEQ);
+		SEQ++;
+	}
+
+	unsigned long long int lastSent = cw.getLastSent();
+	unsigned long long int low = cw.getLowestSeqNum();
+	numPktsToSend = (low + cw.getWindowSize()) - lastSent - 1;
+	index = lastSent - low + 1;
+	for(int i=index; i < cw.getWindowSize(); i++) {
+		cw.sendPacket(i);
+	}
+
+	return bytesRead;
+}*/
 
 void sendPackets() {
 	unsigned long long int bytesRead = 0;
@@ -213,50 +257,53 @@ void sendPackets() {
 		return;
 	}
 
-	while (bytesRead < bytes) {
+	while (1) {
 		//cout << "bytes = " << bytes << endl;
 		//cout << "bytesRead = " << bytesRead << endl;
-		
-		// read file into packets and place in cw vector
-		int num_pkts, packet_size;//, bytes;
-		unsigned long long int low = cw.getLowestSeqNum();
-		//num_pkts = (low + cw.getWindowSize()) - SEQ;
-		num_pkts = cw.getNumPktsToAdd();
+		int numPktsToAdd, numPktsToSend, index, packet_size;
 
-		if(num_pkts < 0) {
-			num_pkts = 0;
+		numPktsToAdd = cw.getNumPktsToAdd();
+
+		if(numPktsToAdd < 0) {
+			numPktsToAdd = 0;
 		}
-		//cout <<  "num_pkts = " << num_pkts << endl;
 
 		char buf[MAX_DATA_SIZE];
-		for(int i=0; i<num_pkts; i++) {
-			if (bytesRead >= bytes) {
-				cout << "final PKT = " << SEQ << endl;
-				cout << "bytesRead = " << bytesRead << endl;
-				cout << "Sending termination packet!\n";
-				int numbytes;
-				if ((numbytes = sendto(sockfd, END, 4, 0, p->ai_addr, p->ai_addrlen)) == -1) {
-			        perror("sender: sendto");
-			        exit(1);
-			    }
-			    ACK_lock.lock();
-			    done_FLAG = 1;
-			    ACK_lock.unlock();
-				return;
-			}
-			unsigned long long int diff = bytes - bytesRead;
-			//cout << "Creating Packet #" << SEQ << endl;
+		for(int i=0; i<numPktsToAdd; i++) {
+			if (bytesRead >= bytes) { break; }
 
-            myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
-            //cout << "bytes - bytesRead = " << diff << endl;
-            bytesRead += min(diff,(unsigned long long int)MAX_DATA_SIZE);
-            if(diff > 0 && diff < MAX_DATA_SIZE) { packet_size = diff; }
-            else { packet_size = MAX_DATA_SIZE; }
-            //cout << "diff = " << bytes - bytesRead << endl;m
+			unsigned long long int diff = bytes - bytesRead;
+	        myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
+	        bytesRead += min(diff,(unsigned long long int)MAX_DATA_SIZE);
+
+	        if(diff > 0 && diff < MAX_DATA_SIZE) { 
+	        	packet_size = diff; 
+	        }
+	        else { 
+	        	packet_size = MAX_DATA_SIZE; 
+	        }
+
 			cw.addPacket(buf, packet_size, SEQ, sockfd, p); // this adds packets and sends them!
 			cw.setHighestSeqNum(SEQ);
 			SEQ++;
 		}
+
+		unsigned long long int lastSent = cw.getLastSent();
+		unsigned long long int low = cw.getLowestSeqNum();
+		numPktsToSend = (low + cw.getWindowSize()) - lastSent - 1;
+		index = lastSent - low + 1;
+		for(int i=index; i < cw.getWindowSize(); i++) {
+			cw.sendPacket(i, sockfd, p);
+		}
+
+		ACK_lock.lock();
+		if(bytesSent >= bytes) {
+			ACK_lock.unlock();
+			break;
+		}
+		ACK_lock.unlock();
+
+		// read file into packets and place in cw vector
 
 		// CRITICAL SECTION
 		ACK_lock.lock(); // to read.
@@ -340,6 +387,7 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	cw.setLastACK(0);
 	cw.setWindowSize(1);
 	cw.setHighestSeqNum(1);
+	cw.setLastSent(0);
 
 	// initialize the globals
 	lastACK = 0;
@@ -347,6 +395,7 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
     timeout_FLAG = 0;
     done_FLAG = 0; // set to one when all pkts sent
     SEQ = 1;
+    bytesSent = 0;
 
     // create the sender thread
 	sender = thread(sendPackets);

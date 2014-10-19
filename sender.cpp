@@ -54,6 +54,14 @@ unsigned long long int CongestionWindow::getLastACK() {
 	return last_ACK;
 }
 
+void CongestionWindow::setLastSent(unsigned long long int num) {
+	lastSent = num;
+}
+
+unsigned long long int CongestionWindow::getLastSent() {
+	return lastSent;
+}
+
 void CongestionWindow::setWindowSize(int size) {
 	window_size = size;
 }
@@ -70,7 +78,7 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, unsigned long lo
 	pkt.setPacketData(buf, size);
 	window.push_back(pkt); // make sure this will be FIFO
 
-	string seq_num = to_string(seqnum);
+	/*string seq_num = to_string(seqnum);
 	int seq_num_size = seq_num.size();
 	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
 	char msg[pkt_size];
@@ -90,7 +98,7 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, unsigned long lo
 	if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sender: sendto");
         exit(1);
-    }
+    }*/
 }
 
 unsigned long long int CongestionWindow::sendWindow(int sockfd, struct addrinfo * p) {
@@ -112,9 +120,7 @@ unsigned long long int CongestionWindow::sendWindow(int sockfd, struct addrinfo 
 		char seq_num_str[seq_num_size];
 		strcpy(seq_num_str, seq_num.c_str());
 		strcat(seq_num_str,"\n");
-		//sprintf(msg,"%s\n%s", seq_num.c_str(), buf);
 
-		//strncpy(new_msg, msg, pkt_size);
 	    memcpy(msg, seq_num_str, seq_num_size + 1);
 	    memcpy(msg + seq_num_size + 1, data, size);
 
@@ -125,7 +131,37 @@ unsigned long long int CongestionWindow::sendWindow(int sockfd, struct addrinfo 
 	        exit(1);
 	    }	
 	}
+	lastSent = seqnum;
 	return seqnum;
+}
+
+void CongestionWindow::sendPacket(int index, int sockfd, struct addrinfo * p) {
+	Packet pkt = window[index];
+	int numbytes;
+
+	unsigned long long int seqnum = pkt.getSequenceNum();
+	char data[MAX_DATA_SIZE];
+	pkt.getPacketData(data);
+	unsigned int size = pkt.getPacketSize();
+
+	string seq_num = to_string(seqnum);
+	int seq_num_size = seq_num.size();
+	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
+	char msg[pkt_size];
+
+	char seq_num_str[seq_num_size];
+	strcpy(seq_num_str, seq_num.c_str());
+	strcat(seq_num_str,"\n");
+
+	memcpy(msg, seq_num_str, seq_num_size + 1);
+	memcpy(msg + seq_num_size + 1, data, size);
+
+	if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+		perror("sender: sendto");
+		exit(1);
+	}	
+
+	lastSent = seqnum;
 }
 
 void CongestionWindow::removePackets(int n) {

@@ -36,6 +36,7 @@ private:
 	unsigned long long int lowest_seq_num; // lowest sequence number in the congestion window
 	unsigned long long int highest_seq_num; // highest sequence number in the congestion window
 	unsigned long long int last_ACK; // sequence number of the lastACKd packet
+	unsigned long long int lastSent;
 	int window_size; // size of the congestion window
 	deque<Packet> window; // deque of packets, actual congestion window
 public:
@@ -45,11 +46,14 @@ public:
 	unsigned long long int getHighestSeqNum();
 	void setLastACK(unsigned long long int ACK_num);
 	unsigned long long int getLastACK();
+	void setLastSent(unsigned long long int num);
+	unsigned long long int getLastSent();
 	void setWindowSize(int size);
 	int getWindowSize();
 	int getNumPktsToAdd();
 	void addPacket(char * buf, unsigned int size, unsigned long long int seqnum, int sockfd, struct addrinfo * p);
 	unsigned long long int sendWindow(int sockfd, struct addrinfo * p);
+	void sendPacket(int index, int sockfd, struct addrinfo * p);
 	void removePackets(int n); // pop n packets off the queue
 	void cutWindow(); // reduce window size on three DUPACKS
 	void panicMode(); // set CW back to 1 on timeout
