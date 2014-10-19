@@ -38,6 +38,7 @@ thread sender;
 mutex ACK_lock;
 unsigned long long int lastACK;
 int timeout_FLAG;
+int done_FLAG;
 unsigned int DUPACKctr;
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer);
@@ -83,8 +84,6 @@ int initialize_TCP() {
         perror("recvfrom");
         exit(1);
     }
-
-    cout << buf << "\n";
 
     if (memcmp(buf,"ACK",3) != 0) {
     	cout << "Received: " << buf << ".\n";
@@ -153,8 +152,8 @@ void receiveACKs() {
 	if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0) {
 	    perror("Error");
 	}
-
-	while (1) {
+	int running = 1;
+	while (running) {
 		timeout = 0;
 		if ((numbytes = recvfrom(sockfd, buf, MAX_DATA_SIZE, 0,
 	        	p->ai_addr, (socklen_t *)&p->ai_addrlen)) == -1) {
@@ -188,6 +187,9 @@ void receiveACKs() {
 	    		ACK_lock.lock();
 	    		lastACK = ACKnum;
 	    		cout << "lastACK = " << lastACK << endl;
+	    		if(done_FLAG && (lastACK == SEQ-1)) {
+	    			running = 0;
+	    		}
 	    		ACK_lock.unlock();
 	    	}
 	    }
@@ -207,8 +209,8 @@ void sendPackets() {
 	}
 	printf("The value of bytes is %llu\n", bytes);
 	while (bytesRead < bytes) {
-		cout << "bytes = " << bytes << endl;
-		cout << "bytesRead = " << bytesRead << endl;
+		//cout << "bytes = " << bytes << endl;
+		//cout << "bytesRead = " << bytesRead << endl;
 		
 		// read file into packets and place in cw vector
 		int num_pkts, packet_size;//, bytes;
@@ -223,17 +225,26 @@ void sendPackets() {
 		char buf[MAX_DATA_SIZE];
 		for(int i=0; i<num_pkts; i++) {
 			if (bytesRead >= bytes) {
+				cout << "Sending termination packet!\n";
+				int numbytes;
+				if ((numbytes = sendto(sockfd, END, 4, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+			        perror("sender: sendto");
+			        exit(1);
+			    }
+			    ACK_lock.lock();
+			    done_FLAG = 1;
+			    ACK_lock.unlock();
 				return;
 			}
 			unsigned long long int diff = bytes - bytesRead;
-			cout << "Creating Packet #" << SEQ << endl;
+			//cout << "Creating Packet #" << SEQ << endl;
 
             myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
-            cout << "bytes - bytesRead = " << diff << endl;
+            //cout << "bytes - bytesRead = " << diff << endl;
             bytesRead += min(diff,(unsigned long long int)MAX_DATA_SIZE);
             if(diff > 0 && diff < 1024){ packet_size = diff;}
             else {packet_size = 1024;}
-
+            //cout << "diff = " << bytes - bytesRead << endl;m
 			cw.addPacket(buf, packet_size, SEQ, sockfd, p); // this adds packets and sends them!
 			cw.setHighestSeqNum(SEQ);
 			SEQ++;
@@ -289,6 +300,9 @@ void sendPackets() {
         perror("sender: sendto");
         exit(1);
     }
+    ACK_lock.lock();
+    done_FLAG = 1;
+    ACK_lock.unlock();
 }
 
 void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* filename, unsigned long long int bytesToTransfer) {
@@ -315,6 +329,7 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	lastACK = 0;
 	DUPACKctr = 0;
     timeout_FLAG = 0;
+    done_FLAG = 0; // set to one when all pkts sent
     SEQ = 1;
 
     // create the sender thread
