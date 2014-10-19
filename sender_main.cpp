@@ -338,5 +338,6 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	receiver = thread(receiveACKs);
 
 	sender.join();
-    receiver.join(); 
+    receiver.join();
+    return; 
 }
