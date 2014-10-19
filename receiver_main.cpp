@@ -166,7 +166,7 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	        perror("recvfrom");
 	        exit(1);
 	    }
-        cout << "Packet size: " << bytesRead << "\n";
+        //cout << "Packet size: " << bytesRead << "\n";
 
 	    if (memcmp(buf,END,4) == 0) {
 	    	cout << "Got a termination packet!\n";
@@ -184,9 +184,12 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
         unsigned long long int nextSeq = last_SEQ + 1;
         //printf("SEQ_num is %llu and nextSeq is %llu\n", SEQ_num, nextSeq);
 	    if (SEQ_num > nextSeq) {
-            printf("Greetings from IF\n"); 
+            //printf("Greetings from IF\n"); 
 	    	// we're missing a packet! resend the last ACK.
+            
 	    	sprintf(ACK_msg, "%llu", last_SEQ);
+            cout << "PKT" << SEQ_num << " <--\n";
+            cout << "ACK" << ACK_msg << "-->" << endl;
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
          		(struct sockaddr *)&their_addr, addr_len)) == -1) {
     			perror("sender: sendto");
@@ -194,13 +197,14 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     		}	
 	    }
 	    else if (SEQ_num == nextSeq) {
-            printf("Greetings from Else IF\n");
+            //printf("Greetings from Else IF\n");
 	    	// in order packet! write it to file.;
             //cout << "Bytes read: " << bytesRead << "\n";
             //cout << "Message: " << msg << endl;
 	    	
 	    	// send an ACK!
 	    	sprintf(ACK_msg, "%llu", nextSeq);
+            cout << "PKT" << SEQ_num << " <--\n";
             cout << "ACK" << ACK_msg << "-->" << endl;
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
          		(struct sockaddr *)&their_addr, addr_len)) == -1) {

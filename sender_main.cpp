@@ -172,12 +172,15 @@ void receiveACKs() {
 	    }
 	    else {
 	    	// we got an ACK
+
 	    	if (memcmp(buf,END,4) == 0) {
 	    		cout << "Got a termination packet!\n";
 	    		return;
 	    	}
 	    	unsigned long long int ACKnum = getACKnum(buf);
 	    	// check if DUPACK
+	    	cout << "ACK" << ACKnum << " <--\n";
+
 	    	if (ACKnum == lastACK) {
 	    		ACK_lock.lock();
 	    		DUPACKctr++;
@@ -265,7 +268,7 @@ void sendPackets() {
 			if(lastACK == cw.getLastACK()) {
 				//cout << "DUPACK!\n";
 				if(DUPACKctr >= 3) { // we're getting DUPACKs
-					cout << "cutting window\n";
+					//cout << "window_size = " << cw.getWindowSize() << endl;
 					cw.cutWindow();
 					unsigned long long int newSEQ = cw.sendWindow(sockfd, p); // resend the window!
 					SEQ = newSEQ + 1;
