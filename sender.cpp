@@ -143,6 +143,7 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, int sockfd, stru
 	int seq_num_size = seq_num.size();
 	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
 	char msg[pkt_size];
+
 	sprintf(msg,"%s\n%s", seq_num.c_str(), buf);
 	
 	char new_msg[pkt_size];
@@ -160,6 +161,10 @@ void CongestionWindow::removePackets(int n) {
 	for(int i=0; i < n; i++) {
 		window.pop_front();
 	}
+
+		cout << window.size() << endl;
+
+
 	if (window.empty()) {
 		lowest_seq_num = 0;
 	}
@@ -180,5 +185,8 @@ void CongestionWindow::panicMode() {
 	window_size = 1;
 
 }
+void CongestionWindow::initCongestionWindow(){
 
+	//window = new deque<Packet>;
+}
 

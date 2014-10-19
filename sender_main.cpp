@@ -286,6 +286,7 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 	cw.setLastACK(0);
 	cw.setWindowSize(1);
 	cw.setHighestSeqNum(0);
+	cw.initCongestionWindow();
 
 	// initialize the globals
 	lastACK = 0;
