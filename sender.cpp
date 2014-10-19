@@ -92,6 +92,40 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, unsigned long lo
     }
 }
 
+unsigned long long int CongestionWindow::sendWindow(int sockfd, struct addrinfo * p) {
+	int numbytes;
+	unsigned long long int seqnum;
+
+	for (int i=0; i<window_size; i++) {
+	    seqnum = window[i].getSequenceNum();
+		char data[MAX_DATA_SIZE];
+		window[i].getPacketData(data);
+		unsigned int size = window[i].getPacketSize();
+
+		string seq_num = to_string(seqnum);
+		int seq_num_size = seq_num.size();
+		int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
+		char msg[pkt_size];
+		//char new_msg[pkt_size];
+
+		char seq_num_str[seq_num_size];
+		strcpy(seq_num_str, seq_num.c_str());
+		strcat(seq_num_str,"\n");
+		//sprintf(msg,"%s\n%s", seq_num.c_str(), buf);
+
+		//strncpy(new_msg, msg, pkt_size);
+	    memcpy(msg, seq_num_str, seq_num_size + 1);
+	    memcpy(msg + seq_num_size + 1, data, size);
+
+	    //cout << "Sending packet: " << msg << "\n";
+		if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+	        perror("sender: sendto");
+	        exit(1);
+	    }	
+	}
+	return seqnum;
+}
+
 void CongestionWindow::removePackets(int n) {
 	for(int i=0; i < n; i++) {
 		window.pop_front();

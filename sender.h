@@ -49,6 +49,7 @@ public:
 	int getWindowSize();
 	int getNumPktsToAdd();
 	void addPacket(char * buf, unsigned int size, unsigned long long int seqnum, int sockfd, struct addrinfo * p);
+	unsigned long long int sendWindow(int sockfd, struct addrinfo * p);
 	void removePackets(int n); // pop n packets off the queue
 	void cutWindow(); // reduce window size on three DUPACKS
 	void panicMode(); // set CW back to 1 on timeout

@@ -182,13 +182,13 @@ void receiveACKs() {
 	    		ACK_lock.lock();
 	    		DUPACKctr++;
 	    		ACK_lock.unlock();
-	    		cout << "lastACK = " << lastACK << endl;
-	    		cout << "DUPACKctr= " << DUPACKctr << endl;
+	    		//cout << "lastACK = " << lastACK << endl;
+	    		//cout << "DUPACKctr= " << DUPACKctr << endl;
 	    	}
 	    	else if (ACKnum > lastACK) {
 	    		ACK_lock.lock();
 	    		lastACK = ACKnum;
-	    		cout << "lastACK = " << lastACK << endl;
+	    		//cout << "lastACK = " << lastACK << endl;
 	    		if(done_FLAG && (lastACK == SEQ-1)) {
 	    			running = 0;
 	    		}
@@ -244,8 +244,8 @@ void sendPackets() {
             myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
             //cout << "bytes - bytesRead = " << diff << endl;
             bytesRead += min(diff,(unsigned long long int)MAX_DATA_SIZE);
-            if(diff > 0 && diff < 1024){ packet_size = diff;}
-            else {packet_size = 1024;}
+            if(diff > 0 && diff < MAX_DATA_SIZE) { packet_size = diff; }
+            else { packet_size = MAX_DATA_SIZE; }
             //cout << "diff = " << bytes - bytesRead << endl;m
 			cw.addPacket(buf, packet_size, SEQ, sockfd, p); // this adds packets and sends them!
 			cw.setHighestSeqNum(SEQ);
@@ -261,10 +261,15 @@ void sendPackets() {
 		}
 		else {
 			//timed out. reset CW to 1
+
 			if(lastACK == cw.getLastACK()) {
-				cout << "DUPACK!\n";
+				//cout << "DUPACK!\n";
 				if(DUPACKctr >= 3) { // we're getting DUPACKs
+					cout << "cutting window\n";
 					cw.cutWindow();
+					unsigned long long int newSEQ = cw.sendWindow(sockfd, p); // resend the window!
+					SEQ = newSEQ + 1;
+					DUPACKctr = 0;
 				}
 				//cw.setHighestSeqNum(cw.getLowestSeqNum + cw.getWindowSize() - 1);
 			}
