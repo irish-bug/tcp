@@ -30,7 +30,6 @@ int sockfd;
 struct addrinfo * p;
 CongestionWindow cw;
 unsigned long long int bytes;
-//ifstream myFile;
 char * file;
 
 thread receiver;
@@ -128,17 +127,6 @@ void setup_UDP(char * hostname, unsigned short int port) {
         fprintf(stderr, "talker: failed to bind socket\n");
         return;
     }
-
-    /*if ((numbytes = sendto(sockfd, argv[2], strlen(argv[2]), 0,
-             p->ai_addr, p->ai_addrlen)) == -1) {
-        perror("talker: sendto");
-        exit(1);
-    }
-
-    freeaddrinfo(servinfo);
-
-    printf("talker: sent %d bytes to %s\n", numbytes, argv[1]);
-    close(sockfd);*/
 }
 
 void receiveACKs() {
@@ -204,47 +192,6 @@ void receiveACKs() {
 	}
 
 }
-
-/*unsigned long long int addAndSendPackets(ifstream myFile) {
-	unsigned long long int bytesRead = 0;
-	int numPktsToAdd, numPktsToSend, index, packet_size;
-
-	numPktsToAdd = cw.getNumPktsToAdd();
-
-	if(numPktsToAdd < 0) {
-		numPktsToAdd = 0;
-	}
-
-	char buf[MAX_DATA_SIZE];
-	for(int i=0; i<numPktsToAdd; i++) {
-		if (bytesRead >= bytes) { break; }
-
-		unsigned long long int diff = bytes - bytesRead;
-        myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
-        bytesRead += min(diff,(unsigned long long int)MAX_DATA_SIZE);
-
-        if(diff > 0 && diff < MAX_DATA_SIZE) { 
-        	packet_size = diff; 
-        }
-        else { 
-        	packet_size = MAX_DATA_SIZE; 
-        }
-
-		cw.addPacket(buf, packet_size, SEQ, sockfd, p); // this adds packets and sends them!
-		cw.setHighestSeqNum(SEQ);
-		SEQ++;
-	}
-
-	unsigned long long int lastSent = cw.getLastSent();
-	unsigned long long int low = cw.getLowestSeqNum();
-	numPktsToSend = (low + cw.getWindowSize()) - lastSent - 1;
-	index = lastSent - low + 1;
-	for(int i=index; i < cw.getWindowSize(); i++) {
-		cw.sendPacket(i);
-	}
-
-	return bytesRead;
-}*/
 
 void sendPackets() {
 	unsigned long long int bytesRead = 0;
@@ -404,5 +351,8 @@ void reliablyTransfer(char* hostname, unsigned short int hostUDPport, char* file
 
 	sender.join();
     receiver.join();
+
+    freeaddrinfo(servinfo);
+    close(sockfd);
     return; 
 }
