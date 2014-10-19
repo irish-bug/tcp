@@ -174,12 +174,12 @@ void receiveACKs() {
 	    	// we got an ACK
 
 	    	if (memcmp(buf,END,4) == 0) {
-	    		cout << "Got a termination packet!\n";
+	    		//cout << "Got a termination packet!\n";
 	    		return;
 	    	}
 	    	unsigned long long int ACKnum = getACKnum(buf);
 	    	// check if DUPACK
-	    	cout << "ACK" << ACKnum << " <--\n";
+	    	//cout << "ACK" << ACKnum << " <--\n";
 
 	    	if (ACKnum == lastACK) {
 	    		ACK_lock.lock();
@@ -212,7 +212,7 @@ void sendPackets() {
 		cout << "reliablyTransfer: Unable to open file.\n";
 		return;
 	}
-	printf("The value of bytes is %llu\n", bytes);
+
 	while (bytesRead < bytes) {
 		//cout << "bytes = " << bytes << endl;
 		//cout << "bytesRead = " << bytesRead << endl;
@@ -220,7 +220,8 @@ void sendPackets() {
 		// read file into packets and place in cw vector
 		int num_pkts, packet_size;//, bytes;
 		unsigned long long int low = cw.getLowestSeqNum();
-		num_pkts = (low + cw.getWindowSize()) - SEQ;
+		//num_pkts = (low + cw.getWindowSize()) - SEQ;
+		num_pkts = cw.getNumPktsToAdd();
 
 		if(num_pkts < 0) {
 			num_pkts = 0;
@@ -230,6 +231,8 @@ void sendPackets() {
 		char buf[MAX_DATA_SIZE];
 		for(int i=0; i<num_pkts; i++) {
 			if (bytesRead >= bytes) {
+				cout << "final PKT = " << SEQ << endl;
+				cout << "bytesRead = " << bytesRead << endl;
 				cout << "Sending termination packet!\n";
 				int numbytes;
 				if ((numbytes = sendto(sockfd, END, 4, 0, p->ai_addr, p->ai_addrlen)) == -1) {
@@ -305,6 +308,8 @@ void sendPackets() {
 		ACK_lock.unlock();
 		// END CRITICAL SECTION
 	}
+	cout << "final PKT = " << SEQ << endl;
+	cout << "bytesRead = " << bytesRead << endl;
 	cout << "Sending termination packet!\n";
 	int numbytes;
 	if ((numbytes = sendto(sockfd, END, 4, 0, p->ai_addr, p->ai_addrlen)) == -1) {

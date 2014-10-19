@@ -86,7 +86,7 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, unsigned long lo
     memcpy(msg + seq_num_size + 1, buf, size);
 
     //cout << "Sending packet: " << msg << "\n";
-    cout << "PKT" << seqnum << " -->\n";
+    //cout << "PKT" << seqnum << " -->\n";
 	if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sender: sendto");
         exit(1);
@@ -119,7 +119,7 @@ unsigned long long int CongestionWindow::sendWindow(int sockfd, struct addrinfo 
 	    memcpy(msg + seq_num_size + 1, data, size);
 
 	    //cout << "Sending packet: " << msg << "\n";
-	    cout << "PKT" << seqnum << " -->\n";
+	    //cout << "PKT" << seqnum << " -->\n";
 		if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
 	        perror("sender: sendto");
 	        exit(1);
@@ -135,8 +135,13 @@ void CongestionWindow::removePackets(int n) {
 }
 
 int CongestionWindow::getNumPktsToAdd() {
-	//cout << "num_pkts = " << window_size - window.size() << endl;
-	return window_size - (highest_seq_num - lowest_seq_num + 1); // number of packets that need to be added
+	if(window.empty()){
+		return window_size;
+	}
+	else {
+		//cout << "num_pkts = " << window_size - (int)window.size() << endl;
+		return window_size - (int)window.size(); // number of packets that need to be added
+	}
 }
 
 void CongestionWindow::cutWindow(){

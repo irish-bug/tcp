@@ -188,8 +188,8 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	    	// we're missing a packet! resend the last ACK.
             
 	    	sprintf(ACK_msg, "%llu", last_SEQ);
-            cout << "PKT" << SEQ_num << " <--\n";
-            cout << "ACK" << ACK_msg << "-->" << endl;
+            //cout << "PKT" << SEQ_num << " <--\n";
+            //cout << "ACK" << ACK_msg << "-->" << endl;
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
          		(struct sockaddr *)&their_addr, addr_len)) == -1) {
     			perror("sender: sendto");
@@ -204,8 +204,8 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	    	
 	    	// send an ACK!
 	    	sprintf(ACK_msg, "%llu", nextSeq);
-            cout << "PKT" << SEQ_num << " <--\n";
-            cout << "ACK" << ACK_msg << "-->" << endl;
+            //cout << "PKT" << SEQ_num << " <--\n";
+            //cout << "ACK" << ACK_msg << "-->" << endl;
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
          		(struct sockaddr *)&their_addr, addr_len)) == -1) {
     			perror("sender: sendto");
