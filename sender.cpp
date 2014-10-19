@@ -82,8 +82,8 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, unsigned long lo
 	//sprintf(msg,"%s\n%s", seq_num.c_str(), buf);
 
 	//strncpy(new_msg, msg, pkt_size);
-    memcpy(msg, seq_num_str, seq_num_size);
-    memcpy(msg + seq_num_size, buf, size);
+    memcpy(msg, seq_num_str, seq_num_size + 1);
+    memcpy(msg + seq_num_size + 1, buf, size);
 
     cout << "Sending packet: " << msg << "\n";
 	if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
