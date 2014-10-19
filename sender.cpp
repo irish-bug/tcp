@@ -74,14 +74,19 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, unsigned long lo
 	int seq_num_size = seq_num.size();
 	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
 	char msg[pkt_size];
-
-	sprintf(msg,"%s\n%s", seq_num.c_str(), buf);
-	
 	char new_msg[pkt_size];
-	strncpy(new_msg, msg, pkt_size);
-    
-    cout << "Sending packet: " << new_msg << "\n";
-	if ((numbytes = sendto(sockfd, new_msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
+
+	char seq_num_str[seq_num_size];
+	strcpy(seq_num_str, seq_num.c_str());
+	strcat(seq_num_str,"\n");
+	//sprintf(msg,"%s\n%s", seq_num.c_str(), buf);
+
+	//strncpy(new_msg, msg, pkt_size);
+    memcpy(msg, seq_num_str, seq_num_size);
+    memcpy(msg + seq_num_size, buf, size);
+
+    cout << "Sending packet: " << msg << "\n";
+	if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
         perror("sender: sendto");
         exit(1);
     }

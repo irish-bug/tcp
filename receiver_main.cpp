@@ -196,8 +196,8 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	    else if (SEQ_num == nextSeq) {
             printf("Greetings from Else IF\n");
 	    	// in order packet! write it to file.;
-            cout << "Bytes read: " << bytesRead << "\n";
-            cout << "Message: " << msg << endl;
+            //cout << "Bytes read: " << bytesRead << "\n";
+            //cout << "Message: " << msg << endl;
 	    	
 	    	// send an ACK!
 	    	sprintf(ACK_msg, "%llu", nextSeq);

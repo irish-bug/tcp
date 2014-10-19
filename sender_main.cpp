@@ -218,6 +218,7 @@ void sendPackets() {
 				return;
 			}
 			unsigned long long int diff = bytes - bytesRead;
+			cout << "Creating Packet #" << SEQ << endl;
 
             myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
             cout << "bytes - bytesRead = " << diff << endl;
