@@ -74,6 +74,7 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, unsigned long lo
 	int seq_num_size = seq_num.size();
 	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
 	char msg[pkt_size];
+
 	sprintf(msg,"%s\n%s", seq_num.c_str(), buf);
 	
 	char new_msg[pkt_size];
@@ -103,5 +104,8 @@ void CongestionWindow::cutWindow(){
 void CongestionWindow::panicMode() {
 	window_size = 1;
 }
+void CongestionWindow::initCongestionWindow(){
 
+	//window = new deque<Packet>;
+}
 
