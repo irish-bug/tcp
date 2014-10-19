@@ -8,26 +8,26 @@ INC = -I.
 FLAGS = -std=c++0x -g -Wall
 LIBS = -lpthread
 
-all: reliably_send reliably_receive
+all: reliable_sender reliable_receiver
 
 sender.o: sender.cpp sender.h
 	$(CC) -c $(FLAGS) $(INC) $< -o $@ $(LIBS)
 
-reliably_receive.o: reliably_receive.cpp
+receiver_main.o: receiver_main.cpp
 	$(CC) -c $(FLAGS) $(INC) $< -o $@ $(LIBS)
 
-reliably_send.o: reliably_send.cpp
+sender_main.o: sender_main.cpp
 	$(CC) -c $(FLAGS) $(INC) $< -o $@ $(LIBS)
 
 sender: sender.o
 	$(CC) $^ -o $@ $(LIBS)
 
-reliably_receive: reliably_receive.o
+reliable_receiver: receiver_main.o
 	$(CC) $^ -o $@ $(LIBS)
 
-reliably_send: reliably_send.o sender.o
+reliable_sender: sender_main.o sender.o
 	$(CC) $^ -o $@ $(LIBS)
 
 .PHONY : clean
 clean:
-	-rm -r -f *.o sender reliably_send reliably_send
+	-rm -r -f *.o reliable*

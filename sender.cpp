@@ -74,7 +74,7 @@ void CongestionWindow::addPacket(char * buf, unsigned int size, unsigned long lo
 	int seq_num_size = seq_num.size();
 	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
 	char msg[pkt_size];
-	char new_msg[pkt_size];
+	//char new_msg[pkt_size];
 
 	char seq_num_str[seq_num_size];
 	strcpy(seq_num_str, seq_num.c_str());
