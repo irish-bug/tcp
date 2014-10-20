@@ -163,20 +163,16 @@ void receiveACKs() {
 	    	// we got an ACK
 
 	    	if (memcmp(buf,END,4) == 0) {
-	    		//cout << "Got a termination packet!\n";
 	    		return;
 	    	}
 	    	unsigned long long int ACKnum = getACKnum(buf);
 	    	// check if DUPACK
-	    	//cout << "ACK" << ACKnum << " <--\n";
 
 	    	if (ACKnum == lastACK) {
 	    		ACK_lock.lock();
 	    		DUPACKctr++;
 	    		ACK_lock.unlock();
 	    		bytesSent = ACKnum * 1024;
-	    		//cout << "lastACK = " << lastACK << endl;
-	    		//cout << "DUPACKctr= " << DUPACKctr << endl;
 	    	}
 	    	else if (ACKnum > lastACK) {
 	    		ACK_lock.lock();
