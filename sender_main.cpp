@@ -177,8 +177,8 @@ void receiveACKs() {
 	    	else if (ACKnum > lastACK) {
 	    		ACK_lock.lock();
 	    		lastACK = ACKnum;
-	    		cout << "lastACK = " << lastACK << endl;
-	    		cout << "lastSent = " << cw.getLastSent() << endl;
+	    		//cout << "lastACK = " << lastACK << endl;
+	    		//cout << "lastSent = " << cw.getLastSent() << endl;
 	    		if(done_FLAG && (lastACK == cw.getLastSent())) {
 	    			running = 0;
 	    		}
@@ -220,7 +220,7 @@ void sendPackets() {
 
 		char buf[MAX_DATA_SIZE];
 		for(int i=0; i<numPktsToAdd; i++) {
-			if (bytesRead >= bytes) { break; }
+			//if (bytesRead >= bytes) { break; }
 
 			unsigned long long int diff = bytes - bytesRead;
 	        myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
@@ -242,6 +242,7 @@ void sendPackets() {
 		unsigned long long int low = cw.getLowestSeqNum();
 		numPktsToSend = (low + cw.getWindowSize()) - lastSent - 1;
 		index = lastSent - low + 1;
+		//cout << "index = " << index << endl;
 		for(int i=index; i < cw.getWindowSize(); i++) {
 			cw.sendPacket(i, sockfd, p);
 		}
@@ -266,6 +267,7 @@ void sendPackets() {
 					//cout << "window_size = " << cw.getWindowSize() << endl;
 					cw.cutWindow();
 					unsigned long long int newSEQ = cw.sendWindow(sockfd, p); // resend the window!
+					//cout << "resending window!\n";
 					SEQ = newSEQ + 1;
 					DUPACKctr = 0;
 				}
