@@ -131,7 +131,7 @@ unsigned long long int CongestionWindow::sendWindow(int sockfd, struct addrinfo 
 	        exit(1);
 	    }	
 	    lastSent = seqnum;
-	    cout << "lastSent =" << lastSent << endl;
+	    //cout << "lastSent =" << lastSent << endl;
 	}
 	return seqnum;
 }
@@ -163,7 +163,7 @@ void CongestionWindow::sendPacket(int index, int sockfd, struct addrinfo * p) {
 		exit(1);
 	}	
 	//cout << "PKT" << seqnum << endl;
-	cout << "lastSent = " << lastSent << endl;
+	//cout << "lastSent = " << lastSent << endl;
 	lastSent = seqnum;
 }
 

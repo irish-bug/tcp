@@ -179,6 +179,7 @@ void receiveACKs() {
 	    		lastACK = ACKnum;
 	    		//cout << "lastACK = " << lastACK << endl;
 	    		//cout << "lastSent = " << cw.getLastSent() << endl;
+	    		DUPACKctr = 0;
 	    		if(done_FLAG && (lastACK == cw.getLastSent())) {
 	    			running = 0;
 	    		}
@@ -263,7 +264,7 @@ void sendPackets() {
 
 			if(lastACK == cw.getLastACK()) {
 				//cout << "DUPACK!\n";
-				if(DUPACKctr >= 3) { // we're getting DUPACKs
+				if(DUPACKctr >= 5) { // we're getting DUPACKs
 					//cout << "window_size = " << cw.getWindowSize() << endl;
 					cw.cutWindow();
 					unsigned long long int newSEQ = cw.sendWindow(sockfd, p); // resend the window!
