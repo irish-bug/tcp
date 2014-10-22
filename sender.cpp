@@ -150,9 +150,9 @@ void CongestionWindow::sendPacket(int index, int sockfd, struct addrinfo * p) {
 	int seq_num_size = (int)seq_num.size();
 	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
 	char msg[pkt_size];
-
+    cout << "seq num str: " << seq_num.c_str() << endl;
 	char seq_num_str[seq_num_size + 1];
-	strncpy(seq_num_str, seq_num.c_str(), seq_num_size);
+	memcpy(seq_num_str, seq_num.c_str(), seq_num_size);
 	strcat(seq_num_str,"\n");
 
 	memcpy(msg, seq_num_str, seq_num_size + 1);
