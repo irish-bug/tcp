@@ -147,12 +147,12 @@ void CongestionWindow::sendPacket(int index, int sockfd, struct addrinfo * p) {
 	unsigned int size = pkt.getPacketSize();
 
 	string seq_num = to_string(seqnum);
-	int seq_num_size = seq_num.size();
+	int seq_num_size = (int)seq_num.size();
 	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
 	char msg[pkt_size];
 
-	char seq_num_str[seq_num_size];
-	strcpy(seq_num_str, seq_num.c_str());
+	char seq_num_str[seq_num_size + 1];
+	strncpy(seq_num_str, seq_num.c_str(), seq_num_size);
 	strcat(seq_num_str,"\n");
 
 	memcpy(msg, seq_num_str, seq_num_size + 1);
