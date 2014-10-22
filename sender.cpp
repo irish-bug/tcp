@@ -130,13 +130,13 @@ unsigned long long int CongestionWindow::sendWindow(int sockfd, struct addrinfo 
 	        perror("sender: sendto");
 	        exit(1);
 	    }	
-	    lastSent = seqnum;
+	    //lastSent = seqnum;
 	    //cout << "lastSent =" << lastSent << endl;
 	}
 	return seqnum;
 }
 
-void CongestionWindow::sendPacket(int index, int sockfd, struct addrinfo * p) {
+unsigned long long int CongestionWindow::sendPacket(int index, int sockfd, struct addrinfo * p) {
 	Packet pkt = window[index];
 	int numbytes;
 
@@ -150,9 +150,8 @@ void CongestionWindow::sendPacket(int index, int sockfd, struct addrinfo * p) {
 	int seq_num_size = (int)seq_num.size();
 	int pkt_size = size + seq_num_size + 1; //data + sequence num + new line
 	char msg[pkt_size];
-    cout << "seq num str: " << seq_num.c_str() << endl;
-	char seq_num_str[seq_num_size + 1];
-	memcpy(seq_num_str, seq_num.c_str(), seq_num_size);
+	char seq_num_str[seq_num_size];
+	strcpy(seq_num_str, seq_num.c_str());
 	strcat(seq_num_str,"\n");
 
 	memcpy(msg, seq_num_str, seq_num_size + 1);
@@ -164,7 +163,8 @@ void CongestionWindow::sendPacket(int index, int sockfd, struct addrinfo * p) {
 	}	
 	//cout << "PKT" << seqnum << endl;
 	//cout << "lastSent = " << lastSent << endl;
-	lastSent = seqnum;
+	//lastSent = seqnum;
+	return seqnum;
 }
 
 void CongestionWindow::removePackets(int n) {

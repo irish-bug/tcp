@@ -128,11 +128,12 @@ void setup_UDP(char * hostname, unsigned short int port) {
 void sendPackets(char * filename, unsigned long long int bytesToTransfer, CongestionWindow cw) {
 	unsigned long long int bytesRead = 0;
 	unsigned long long int SEQ = 1;
+	unsigned long long int lastSent = 0;
 	bool slowStart = true;
 	int partialPacket = 0;
 	int numbytes, timeout;
 	//char buf[MAX_DATA_SIZE];
-	int numPktsToAdd, numPktsToSend, index, packet_size;
+	int numPktsToAdd, index, packet_size;
 	unsigned long long int lastACK = 0;
 	unsigned int DUPACKctr = 0;
 	unsigned long long int bytesSent = 0;
@@ -161,8 +162,11 @@ void sendPackets(char * filename, unsigned long long int bytesToTransfer, Conges
 		}
 
 		char buf[MAX_DATA_SIZE];
-		for(int i=0; i<numPktsToAdd; i++) {
-			if (bytesRead >= bytesToTransfer) { break; }
+		for(int i=0; i < numPktsToAdd; i++) {
+			if (bytesRead >= bytesToTransfer) { 
+				//cout << "here's the problem\n";
+				break; 
+			}
 
 			unsigned long long int diff = bytesToTransfer - bytesRead;
 	        myFile.read(buf, min(diff,(unsigned long long int)MAX_DATA_SIZE));
@@ -177,16 +181,19 @@ void sendPackets(char * filename, unsigned long long int bytesToTransfer, Conges
 
 			cw.addPacket(buf, packet_size, SEQ, sockfd, p); // this adds packets and sends them!
 			cw.setHighestSeqNum(SEQ);
+			cout << "added PKT" << SEQ << endl;
 			SEQ++;
 		}
 
-		unsigned long long int lastSent = cw.getLastSent();
+		//unsigned long long int lastSent = cw.getLastSent();
 		unsigned long long int low = cw.getLowestSeqNum();
-		numPktsToSend = (low + cw.getWindowSize()) - lastSent - 1;
 		index = lastSent - low + 1;
-		//cout << "index = " << index << endl;
+		//cout << "lastSent = " << lastSent << endl;
+		//cout << "low = " << low << endl;
 		for(int i=index; i < cw.getWindowSize(); i++) {
-			cw.sendPacket(i, sockfd, p);
+			if (lastSent * MAX_DATA_SIZE >= bytesToTransfer) { break; } 
+			lastSent = cw.sendPacket(i, sockfd, p);
+			//cout << "lastSent = " << lastSent << endl;
 		}
 
 		// LISTEN FOR ACKs
@@ -209,6 +216,7 @@ void sendPackets(char * filename, unsigned long long int bytesToTransfer, Conges
 	    else {
 	    	// we got an ACK
 	    	unsigned long long int ACKnum = getACKnum(resp);
+	    	cout << "ACK: " << ACKnum << endl;
 
 	    	if (ACKnum == lastACK) { // DUPACK
 	    		DUPACKctr++;
@@ -216,11 +224,12 @@ void sendPackets(char * filename, unsigned long long int bytesToTransfer, Conges
 	    		if (DUPACKctr >= 10) {
 	    			cw.cutWindow();
 					unsigned long long int newSEQ = cw.sendWindow(sockfd, p); // resend the window!
+					//lastSent = newSEQ;
 					SEQ = newSEQ + 1;
 					DUPACKctr = 0;
-					unsigned long long int new_low = lastACK + 1;
-					cw.setLowestSeqNum(new_low);
 	    		}
+	    		unsigned long long int new_low = lastACK + 1;
+				cw.setLowestSeqNum(new_low);
 	    	}
 	    	else if (ACKnum > lastACK) { // not a DUPACK!
 	    		lastACK = ACKnum;
@@ -246,6 +255,9 @@ void sendPackets(char * filename, unsigned long long int bytesToTransfer, Conges
 				}
 				unsigned long long int new_low = lastACK + 1;
 				cw.setLowestSeqNum(new_low);
+	    	}
+	    	else {
+	    		cout << "old ACK!" << endl;
 	    	}
 	    }
 	}
