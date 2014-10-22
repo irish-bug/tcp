@@ -216,7 +216,7 @@ void sendPackets(char * filename, unsigned long long int bytesToTransfer, Conges
 	    else {
 	    	// we got an ACK
 	    	unsigned long long int ACKnum = getACKnum(resp);
-	    	cout << "ACK: " << ACKnum << endl;
+	    	//cout << "ACK: " << ACKnum << endl;
 
 	    	if (ACKnum == lastACK) { // DUPACK
 	    		DUPACKctr++;
