@@ -125,7 +125,7 @@ unsigned long long int CongestionWindow::sendWindow(int sockfd, struct addrinfo 
 	    memcpy(msg + seq_num_size + 1, data, size);
 
 	    //cout << "Sending packet: " << msg << "\n";
-	    //cout << "PKT" << seqnum << " -->\n";
+	    //cout << "*PKT" << seqnum << " -->\n";
 		if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
 	        perror("sender: sendto");
 	        exit(1);

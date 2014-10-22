@@ -16,7 +16,7 @@ sender.o: sender.cpp sender.h
 receiver_main.o: receiver_main.cpp
 	$(CC) -c $(FLAGS) $(INC) $< -o $@ $(LIBS)
 
-sender_main.o: sender_main.cpp
+sender_main.o: sender_main_single.cpp
 	$(CC) -c $(FLAGS) $(INC) $< -o $@ $(LIBS)
 
 sender: sender.o
