@@ -181,15 +181,13 @@ void sendPackets(char * filename, unsigned long long int bytesToTransfer, Conges
 
 			cw.addPacket(buf, packet_size, SEQ, sockfd, p); // this adds packets and sends them!
 			cw.setHighestSeqNum(SEQ);
-			cout << "added PKT" << SEQ << endl;
+			//cout << "added PKT" << SEQ << endl;
 			SEQ++;
 		}
 
 		//unsigned long long int lastSent = cw.getLastSent();
 		unsigned long long int low = cw.getLowestSeqNum();
 		index = lastSent - low + 1;
-		//cout << "lastSent = " << lastSent << endl;
-		//cout << "low = " << low << endl;
 		for(int i=index; i < cw.getWindowSize(); i++) {
 			if (lastSent * MAX_DATA_SIZE >= bytesToTransfer) { break; } 
 			lastSent = cw.sendPacket(i, sockfd, p);
@@ -216,15 +214,14 @@ void sendPackets(char * filename, unsigned long long int bytesToTransfer, Conges
 	    else {
 	    	// we got an ACK
 	    	unsigned long long int ACKnum = getACKnum(resp);
-	    	//cout << "ACK: " << ACKnum << endl;
 
 	    	if (ACKnum == lastACK) { // DUPACK
 	    		DUPACKctr++;
 	    		bytesSent = ACKnum * MAX_DATA_SIZE; // the number of bytes successfully sent
-	    		if (DUPACKctr >= 10) {
+	    		if (DUPACKctr >= 20) {
 	    			cw.cutWindow();
 					unsigned long long int newSEQ = cw.sendWindow(sockfd, p); // resend the window!
-					//lastSent = newSEQ;
+					lastSent = newSEQ;
 					SEQ = newSEQ + 1;
 					DUPACKctr = 0;
 	    		}
@@ -245,7 +242,7 @@ void sendPackets(char * filename, unsigned long long int bytesToTransfer, Conges
 				}
 				else{
 					partialPacket++;
-					if(partialPacket == cw.getWindowSize()) {
+					if((partialPacket == cw.getWindowSize()) && (cw.getWindowSize() < 100)) {
 						ws = cw.getWindowSize() + 1;
 					}
 				}

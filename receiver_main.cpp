@@ -121,7 +121,7 @@ int initialize_TCP() {
         exit(1);
     }
 
-    if (strcmp(buf,"SYN") != 0) {
+    if (memcmp(buf,"SYN", 3) != 0) {
     	printf("Received: %s\n", buf);
     	cout << "Not a SYN... terminating.\n";
     	return -1; // indicates termination
@@ -140,6 +140,7 @@ int initialize_TCP() {
 void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
     int numbytes;
     int bytesRead;
+    int DUPACKctr = 0;
 	//try to open file
 	ofstream myFile(destinationFile);
 	if (!myFile.is_open()) {
@@ -176,34 +177,30 @@ void reliablyReceive(unsigned short int myUDPport, char* destinationFile) {
 	    unsigned long long int SEQ_num;
 	    sscanf(buf, "%llu", &SEQ_num);
         //printf("SEQ_num is %llu and last_SEQ is %llu\n", SEQ_num, last_SEQ);
+        char ACK_msg[MAX_DATA_SIZE];
+        unsigned long long int nextSeq = last_SEQ + 1;
         char * msg = stripSeqNumber(buf, bytesRead);
 
-	    char ACK_msg[MAX_DATA_SIZE];
-        unsigned long long int nextSeq = last_SEQ + 1;
-        //printf("SEQ_num is %llu and nextSeq is %llu\n", SEQ_num, nextSeq);
+
 	    if (SEQ_num > nextSeq) {
-            //printf("Greetings from IF\n"); 
 	    	// we're missing a packet! resend the last ACK.
-            
-	    	sprintf(ACK_msg, "%llu", last_SEQ);
-            //cout << "PKT" << SEQ_num << " <--\n";
-            //cout << "ACK" << ACK_msg << "-->" << endl;
-	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
-         		(struct sockaddr *)&their_addr, addr_len)) == -1) {
-    			perror("sender: sendto");
-        		exit(1);
-    		}	
+            if (DUPACKctr < 20) {
+    	    	sprintf(ACK_msg, "%llu", last_SEQ);
+                //cout << "PKT" << SEQ_num << " <--\n";
+                //cout << "ACK" << ACK_msg << "-->" << endl;
+    	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
+             		(struct sockaddr *)&their_addr, addr_len)) == -1) {
+        			perror("sender: sendto");
+            		exit(1);
+        		}	
+            }
+            DUPACKctr++;
 	    }
 	    else if (SEQ_num == nextSeq) {
-            //printf("Greetings from Else IF\n");
-	    	// in order packet! write it to file.;
-            //cout << "Bytes read: " << bytesRead << "\n";
-            //cout << "Message: " << msg << endl;
-	    	
+	    	// in order packet! write it to file.
+	    	DUPACKctr = 0;
 	    	// send an ACK!
 	    	sprintf(ACK_msg, "%llu", nextSeq);
-            //cout << "PKT" << SEQ_num << " <--\n";
-            //cout << "ACK" << ACK_msg << "-->" << endl;
 	    	if ((numbytes = sendto(sockfd, ACK_msg, strlen(ACK_msg), 0,
          		(struct sockaddr *)&their_addr, addr_len)) == -1) {
     			perror("sender: sendto");

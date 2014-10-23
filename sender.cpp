@@ -16,12 +16,12 @@ int Packet::setPacketData(char * buf, unsigned int size) {
 		return -1;
 	}
 	packet_len = size;
-	strncpy(data, buf, size);
+	memcpy(data, buf, size);
 	return 0;
 }
 
 void Packet::getPacketData(char * buf) {
-	strcpy(buf,data);
+	memcpy(buf, data, packet_len);
 }
 
 unsigned int Packet::getPacketSize() {
@@ -125,7 +125,7 @@ unsigned long long int CongestionWindow::sendWindow(int sockfd, struct addrinfo 
 	    memcpy(msg + seq_num_size + 1, data, size);
 
 	    //cout << "Sending packet: " << msg << "\n";
-	    //cout << "*PKT" << seqnum << " -->\n";
+	    cout << "*PKT" << seqnum << " -->\n";
 		if ((numbytes = sendto(sockfd, msg, pkt_size, 0, p->ai_addr, p->ai_addrlen)) == -1) {
 	        perror("sender: sendto");
 	        exit(1);
@@ -184,7 +184,12 @@ int CongestionWindow::getNumPktsToAdd() {
 }
 
 void CongestionWindow::cutWindow(){
-	window_size = window_size / 2;
+	if (window_size / 2 == 0) {
+		window_size = 1;
+	}
+	else {
+		window_size = window_size / 2;
+	}
 }
 
 void CongestionWindow::panicMode() {
